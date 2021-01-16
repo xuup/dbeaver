@@ -74,6 +74,11 @@ public enum SQLServerAuthentication {
         properties.remove(DBConstants.DATA_SOURCE_PROPERTY_USER);
         properties.remove(DBConstants.DATA_SOURCE_PROPERTY_PASSWORD);
     }),
+    //
+    AD_MFA(SQLServerMessages.authentication_ad_interactive_title, SQLServerMessages.authentication_ad_interactive_description, false, true, false, (connectionInfo, properties) -> {
+        properties.put(SQLServerConstants.PROP_CONNECTION_AUTHENTICATION, SQLServerConstants.AUTH_ACTIVE_DIRECTORY_INTERACTIVE);
+        properties.remove(DBConstants.DATA_SOURCE_PROPERTY_PASSWORD);
+    }),
     KERBEROS_INTEGRATED(SQLServerMessages.authentication_kerberos_title, SQLServerMessages.authentication_kerberos_description, false, false, false, (connectionInfo, properties) -> {
         properties.put(SQLServerConstants.PROP_CONNECTION_INTEGRATED_SECURITY, String.valueOf(true));
         properties.put(SQLServerConstants.PROP_CONNECTION_AUTHENTICATION_SCHEME, SQLServerConstants.AUTH_SCHEME_KERBEROS);
