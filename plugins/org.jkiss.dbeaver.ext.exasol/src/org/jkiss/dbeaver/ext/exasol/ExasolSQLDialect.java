@@ -1,7 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2016 Karl Griesser (fullref@gmail.com)
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,12 @@ import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ext.exasol.model.ExasolDataSource;
 import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCSQLDialect;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
 
 import java.sql.SQLException;
@@ -52,21 +50,15 @@ public class ExasolSQLDialect extends JDBCSQLDialect {
         super.addFunctions(Arrays.asList(functions));
     }
     
-    public void initDriverSettings(JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
-        super.initDriverSettings(dataSource, metaData);
+    public void initDriverSettings(JDBCSession session, JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
+        super.initDriverSettings(session, dataSource, metaData);
         
         Collections.addAll(tableQueryWords, "DESC");
         
         try {
-          
-        	JDBCSession session = DBUtils.openMetaSession(new VoidProgressMonitor(), dataSource, "" );
-        	try (JDBCStatement stmt = session.createStatement())
-        	{
-        		try (JDBCResultSet dbResult = stmt.executeQuery("/*snapshot execution*/ SELECT \"VALUE\" FROM \"$ODBCJDBC\".DB_METADATA WHERE name = 'aggregateFunctions'")) 
-        		{
-        			
-        			if (dbResult.next())
-        			{
+			try (JDBCStatement stmt = session.createStatement()) {
+        		try (JDBCResultSet dbResult = stmt.executeQuery("/*snapshot execution*/ SELECT \"VALUE\" FROM \"$ODBCJDBC\".DB_METADATA WHERE name = 'aggregateFunctions'")) {
+        			if (dbResult.next()) {
         				String keyWord = dbResult.getString(1);
         				
         				String[] aggregateFunctions = keyWord.split(",");
@@ -74,10 +66,8 @@ public class ExasolSQLDialect extends JDBCSQLDialect {
         				
         			}
         		}
-        		try (JDBCResultSet dbResult = stmt.executeQuery("/*snapshot execution*/ SELECT keyword FROM sys.EXA_SQL_KEYWORDS esk WHERE RESERVED")) 
-        		{
-        			while(dbResult.next())
-        			{
+        		try (JDBCResultSet dbResult = stmt.executeQuery("/*snapshot execution*/ SELECT keyword FROM sys.EXA_SQL_KEYWORDS esk WHERE RESERVED")) {
+        			while(dbResult.next()) {
         				String keyWord = dbResult.getString("KEYWORD");
         				super.addSQLKeyword(keyWord);
         			}

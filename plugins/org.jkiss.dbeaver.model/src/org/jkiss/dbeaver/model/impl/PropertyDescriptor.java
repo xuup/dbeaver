@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,8 @@ public class PropertyDescriptor implements DBPPropertyDescriptor, IPropertyValue
         t_long(Long.class),
         t_float(Float.class),
         t_double(Double.class),
-        t_numeric(Double.class);
+        t_numeric(Double.class),
+        t_file(String.class);
         // Removed because it is initialized before workbench start and breaks init queue
         //t_resource(IResource.class);
 

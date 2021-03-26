@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,14 @@ import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
 import org.jkiss.dbeaver.ext.postgresql.edit.PostgreTableColumnManager;
 import org.jkiss.dbeaver.ext.postgresql.model.data.PostgreBinaryFormatter;
 import org.jkiss.dbeaver.ext.postgresql.sql.PostgreDollarQuoteRule;
+import org.jkiss.dbeaver.ext.postgresql.sql.PostgreEscapeStringRule;
 import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.DBPKeywordType;
 import org.jkiss.dbeaver.model.data.DBDBinaryFormatter;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
+import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCSQLDialect;
 import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
@@ -47,13 +49,13 @@ import java.util.List;
  * PostgreSQL dialect
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
-
     public static final String[] POSTGRE_NON_TRANSACTIONAL_KEYWORDS = ArrayUtils.concatArrays(
         BasicSQLDialect.NON_TRANSACTIONAL_KEYWORDS,
         new String[]{
             "SHOW", "SET"
         }
     );
+
     private static final String[][] PG_STRING_QUOTES = {
         {"'", "'"}
     };
@@ -264,7 +266,6 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
         "P"
     };
     //endregion
-
 
     //region FUNCTIONS KW
 
@@ -656,6 +657,7 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
         "GENERATE_SERIES",
         "GENERATE_SUBSCRIPTS"
     };
+
     //endregion
 
     private PostgreServerExtension serverExtension;
@@ -672,8 +674,8 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
         super.addFunctions(Arrays.asList(functions));
     }
 
-    public void initDriverSettings(JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
-        super.initDriverSettings(dataSource, metaData);
+    public void initDriverSettings(JDBCSession session, JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
+        super.initDriverSettings(session, dataSource, metaData);
 
         addExtraKeywords(
             "SHOW",
@@ -746,7 +748,6 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
         removeSQLKeyword("LENGTH");
 
         if (dataSource instanceof PostgreDataSource) {
-            ((PostgreDataSource) dataSource).getServerType().configureDialect(this);
             serverExtension = ((PostgreDataSource) dataSource).getServerType();
             serverExtension.configureDialect(this);
         }
@@ -797,7 +798,7 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
     @Override
     public String getTypeCastClause(DBSAttributeBase attribute, String expression) {
         String typeName = attribute.getTypeName();
-        if (ArrayUtils.contains(PostgreDataType.getOidTypes(), typeName)) {
+        if (ArrayUtils.contains(PostgreDataType.getOidTypes(), typeName) || attribute.getTypeID() == Types.OTHER) {
             return expression + "::" + typeName;
         }
         return expression;
@@ -877,6 +878,7 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider {
     public void extendRules(@Nullable DBPDataSourceContainer dataSource, @NotNull List<TPRule> rules, @NotNull RulePosition position) {
         if (position == RulePosition.INITIAL || position == RulePosition.PARTITION) {
             rules.add(new PostgreDollarQuoteRule(dataSource, position == RulePosition.PARTITION));
+            rules.add(new PostgreEscapeStringRule());
         }
     }
 }

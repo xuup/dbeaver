@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,17 +197,23 @@ public abstract class DBNDatabaseNode extends DBNNode implements DBNLazyNode, DB
     }
 
     @Override
-    public synchronized DBNDatabaseNode[] getChildren(DBRProgressMonitor monitor)
+    public DBNDatabaseNode[] getChildren(DBRProgressMonitor monitor)
         throws DBException {
-        if (childNodes == null && hasChildren(false)) {
+        boolean needsLoad;
+        synchronized (this) {
+            needsLoad = childNodes == null && hasChildren(false);
+        }
+        if (needsLoad) {
             if (this.initializeNode(monitor, null)) {
                 final List<DBNDatabaseNode> tmpList = new ArrayList<>();
                 loadChildren(monitor, getMeta(), null, tmpList, this, true);
                 if (!monitor.isCanceled()) {
-                    if (tmpList.isEmpty()) {
-                        this.childNodes = EMPTY_NODES;
-                    } else {
-                        this.childNodes = tmpList.toArray(new DBNDatabaseNode[0]);
+                    synchronized (this) {
+                        if (tmpList.isEmpty()) {
+                            this.childNodes = EMPTY_NODES;
+                        } else {
+                            this.childNodes = tmpList.toArray(new DBNDatabaseNode[0]);
+                        }
                     }
                     this.afterChildRead();
                 }
@@ -720,7 +726,8 @@ public abstract class DBNDatabaseNode extends DBNNode implements DBNLazyNode, DB
                 if (pathName.length() > 0) {
                     pathName.insert(0, '/');
                 }
-                String type = ((DBNDatabaseFolder) node).getMeta().getType();
+                DBXTreeFolder folderMeta = ((DBNDatabaseFolder) node).getMeta();
+                String type = folderMeta.getIdOrType();
                 if (CommonUtils.isEmpty(type)) {
                     type = node.getName();
                 }

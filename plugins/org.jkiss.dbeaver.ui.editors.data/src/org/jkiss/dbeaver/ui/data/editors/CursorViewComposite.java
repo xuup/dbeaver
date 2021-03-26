@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSDataContainer;
 import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.controls.resultset.*;
 import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
@@ -57,7 +56,6 @@ public class CursorViewComposite extends Composite implements IResultSetContaine
 
     private IValueController valueController;
     private DBDCursor value;
-    private DBCResultSet resultSet;
     private ResultSetViewer resultSetViewer;
     private CursorDataContainer dataContainer;
     private boolean fetched;
@@ -74,15 +72,15 @@ public class CursorViewComposite extends Composite implements IResultSetContaine
         value = (DBDCursor) valueController.getValue();
 
         if (value != null) {
-            DBPPreferenceStore globalPreferenceStore = DBWorkbench.getPlatform().getPreferenceStore();
-            if (!globalPreferenceStore.getBoolean(ResultSetPreferences.KEEP_STATEMENT_OPEN)) {
+            DBPPreferenceStore preferenceStore = valueController.getExecutionContext().getDataSource().getContainer().getPreferenceStore();
+            if (!preferenceStore.getBoolean(ResultSetPreferences.KEEP_STATEMENT_OPEN)) {
                 if (ConfirmationDialog.showConfirmDialog(
                         ResourceBundle.getBundle(ResultSetMessages.BUNDLE_NAME),
                         getShell(),
                         ResultSetPreferences.CONFIRM_KEEP_STATEMENT_OPEN,
                         ConfirmationDialog.QUESTION) == IDialogConstants.YES_ID)
                 {
-                    globalPreferenceStore.setValue(ResultSetPreferences.KEEP_STATEMENT_OPEN, true);
+                    preferenceStore.setValue(ResultSetPreferences.KEEP_STATEMENT_OPEN, true);
                     if (valueController.getValueSite().getPart() instanceof IResultSetContainer) {
                         IResultSetController rsv = ((IResultSetContainer) valueController.getValueSite().getPart()).getResultSetController();
                         if (rsv != null) {
@@ -201,7 +199,7 @@ public class CursorViewComposite extends Composite implements IResultSetContaine
         public DBCStatistics readData(@NotNull DBCExecutionSource source, @NotNull DBCSession session, @NotNull DBDDataReceiver dataReceiver, DBDDataFilter dataFilter, long firstRow, long maxRows, long flags, int fetchSize) throws DBCException
         {
             DBCStatistics statistics = new DBCStatistics();
-            resultSet = value == null ? null : value.openResultSet(session);
+            DBCResultSet resultSet = value == null ? null : value.openResultSet(session);
             if (resultSet == null) {
                 return statistics;
             }
@@ -248,6 +246,12 @@ public class CursorViewComposite extends Composite implements IResultSetContaine
             }
             finally {
                 dataReceiver.close();
+
+                try {
+                    resultSet.close();
+                } catch (Exception e) {
+                    log.debug(e);
+                }
             }
         }
 

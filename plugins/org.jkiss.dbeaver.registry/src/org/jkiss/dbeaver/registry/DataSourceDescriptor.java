@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -186,7 +186,7 @@ public class DataSourceDescriptor
         this.connectionInfo = connectionInfo;
         this.preferenceStore = new DataSourcePreferenceStore(this);
         this.virtualModel = new DBVModel(this);
-        this.navigatorSettings = new DataSourceNavigatorSettings(DataSourceNavigatorSettings.PRESET_FULL.getSettings());
+        this.navigatorSettings = new DataSourceNavigatorSettings(DataSourceNavigatorSettings.getDefaultSettings());
     }
 
     // Copy constructor
@@ -427,6 +427,14 @@ public class DataSourceDescriptor
         }
     }
 
+    @Override
+    public boolean isAutoCloseTransactions() {
+        if (getPreferenceStore().isDefault(ModelPreferences.TRANSACTIONS_AUTO_CLOSE_ENABLED)) {
+            return connectionInfo.getConnectionType().isAutoCloseTransactions();
+        }
+        return getPreferenceStore().getBoolean(ModelPreferences.TRANSACTIONS_AUTO_CLOSE_ENABLED);
+    }
+
     @Nullable
     @Override
     public DBPTransactionIsolation getActiveTransactionsIsolation()
@@ -621,7 +629,7 @@ public class DataSourceDescriptor
 
     @Override
     public boolean isExternallyProvided() {
-        return origin.isDynamic();
+        return getOrigin().isDynamic();
     }
 
     @Override
@@ -770,8 +778,9 @@ public class DataSourceDescriptor
         // Update auth properties if possible
 
         // 1. Get credentials from origin
-        if (origin instanceof DBAAuthCredentialsProvider) {
-            ((DBAAuthCredentialsProvider) origin).provideAuthParameters(this, resolvedConnectionInfo);
+        DBPDataSourceOrigin dsOrigin = getOrigin();
+        if (dsOrigin instanceof DBAAuthCredentialsProvider) {
+            ((DBAAuthCredentialsProvider) dsOrigin).provideAuthParameters(this, resolvedConnectionInfo);
         }
 
         // 2. Get credentials from global provider
@@ -918,7 +927,7 @@ public class DataSourceDescriptor
             }
             return true;
         } catch (Exception e) {
-            log.debug("Connection failed (" + getId() + ")");
+            log.debug("Connection failed (" + getId() + ")", e);
             if (tunnelHandler != null) {
                 try {
                     tunnelHandler.closeTunnel(monitor);
@@ -1368,6 +1377,7 @@ public class DataSourceDescriptor
     }
 
     public void copyFrom(DataSourceDescriptor descriptor) {
+        this.origin = descriptor.origin;
         this.filterMap.clear();
         for (FilterMapping mapping : descriptor.getObjectFilters()) {
             this.filterMap.put(mapping.typeName, new FilterMapping(mapping));
@@ -1479,7 +1489,13 @@ public class DataSourceDescriptor
         final String user = networkHandler != null ? networkHandler.getUserName() : actualConfig.getUserName();
         final String password = networkHandler != null ? networkHandler.getPassword() : actualConfig.getUserPassword();
 
-        DBPAuthInfo authInfo = DBWorkbench.getPlatformUI().promptUserCredentials(prompt, user, password, passwordOnly, !dataSourceContainer.isTemporary());
+        DBPAuthInfo authInfo;
+        try {
+            authInfo = DBWorkbench.getPlatformUI().promptUserCredentials(prompt, user, password, passwordOnly, !dataSourceContainer.isTemporary());
+        } catch (Exception e) {
+            log.debug(e);
+            authInfo = new DBPAuthInfo(user, password, false);
+        }
         if (authInfo == null) {
             return false;
         }

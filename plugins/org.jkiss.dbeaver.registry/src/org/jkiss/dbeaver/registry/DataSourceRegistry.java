@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -200,7 +200,7 @@ public class DataSourceRegistry implements DBPDataSourceRegistry {
     public DataSourceDescriptor findDataSourceByName(String name) {
         synchronized (dataSources) {
             for (DataSourceDescriptor dsd : dataSources.values()) {
-                if (dsd.getName().equals(name)) {
+                if (!dsd.isHidden() && dsd.getName().equals(name)) {
                     return dsd;
                 }
             }

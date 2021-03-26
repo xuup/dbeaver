@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.eclipse.ui.part.FileEditorInput;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
+import org.jkiss.dbeaver.erd.model.ERDPersistedState;
 import org.jkiss.dbeaver.erd.ui.editor.ERDEditorStandalone;
 import org.jkiss.dbeaver.erd.ui.model.DiagramLoader;
 import org.jkiss.dbeaver.erd.ui.model.ERDContentProviderDecorated;
@@ -179,7 +180,7 @@ public class ERDResourceHandler extends AbstractResourceHandler {
     public List<DBPDataSourceContainer> getAssociatedDataSources(DBNResource resource) {
         if (resource.getResource() instanceof IFile) {
             try {
-                return DiagramLoader.extractContainers((IFile)resource.getResource());
+                return ERDPersistedState.extractContainers((IFile)resource.getResource());
             } catch (Exception e) {
                 log.error(e);
                 return null;

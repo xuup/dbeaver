@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ public class ResultSetDataContainer implements DBSDataContainer, DBPContextProvi
             long resultCount = 0;
             try {
                 dataReceiver.fetchStart(session, resultSet, firstRow, maxRows);
-                while (resultSet.nextRow()) {
+                while (!session.getProgressMonitor().isCanceled() && resultSet.nextRow()) {
                     if (!proceedSelectedRowsOnly(flags) || options.getSelectedRows().contains(resultCount)) {
                         dataReceiver.fetchRow(session, resultSet);
                     }

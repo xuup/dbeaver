@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
 import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.ICompositeDialogPage;
+import org.jkiss.dbeaver.ui.IDialogPageProvider;
 import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.dialogs.connection.ClientHomesSelector;
 import org.jkiss.dbeaver.ui.dialogs.connection.ConnectionPageWithAuth;
@@ -46,7 +46,7 @@ import java.util.Locale;
 /**
  * PostgreConnectionPage
  */
-public class PostgreConnectionPage extends ConnectionPageWithAuth implements ICompositeDialogPage {
+public class PostgreConnectionPage extends ConnectionPageWithAuth implements IDialogPageProvider {
     private static final Log log = Log.getLog(PostgreConnectionPage.class);
 
     private Text hostText;
@@ -78,6 +78,9 @@ public class PostgreConnectionPage extends ConnectionPageWithAuth implements ICo
                 site.updateButtons();
             }
         };
+        
+        final DBPDriver driver = site.getDriver();
+        PostgreServerType serverType = PostgreUtils.getServerType(driver);
 
         Composite mainGroup = new Composite(composite, SWT.NONE);
         mainGroup.setLayout(new GridLayout(1, false));
@@ -86,18 +89,26 @@ public class PostgreConnectionPage extends ConnectionPageWithAuth implements ICo
 
         Group addrGroup = UIUtils.createControlGroup(mainGroup, "Server", 4, GridData.FILL_HORIZONTAL, 0);
 
-        hostText = UIUtils.createLabelText(addrGroup, PostgreMessages.dialog_setting_connection_host, null, SWT.BORDER);
+        if (serverType.hostIsCloudInstance()) {
+        	hostText = UIUtils.createLabelText(addrGroup, PostgreMessages.dialog_setting_connection_cloud_instance, null, SWT.BORDER);
+        } else {
+        	hostText = UIUtils.createLabelText(addrGroup, PostgreMessages.dialog_setting_connection_host, null, SWT.BORDER);
+        }
         gd = new GridData(GridData.FILL_HORIZONTAL);
         gd.grabExcessHorizontalSpace = true;
         hostText.setLayoutData(gd);
         hostText.addModifyListener(textListener);
 
-        portText = UIUtils.createLabelText(addrGroup, PostgreMessages.dialog_setting_connection_port, null, SWT.BORDER);
-        gd = new GridData(GridData.VERTICAL_ALIGN_BEGINNING);
-        gd.widthHint = UIUtils.getFontHeight(portText) * 7;
-        portText.setLayoutData(gd);
-        portText.addVerifyListener(UIUtils.getIntegerVerifyListener(Locale.getDefault()));
-        portText.addModifyListener(textListener);
+        if (serverType.needsPort()) {
+	        portText = UIUtils.createLabelText(addrGroup, PostgreMessages.dialog_setting_connection_port, null, SWT.BORDER);
+	        gd = new GridData(GridData.VERTICAL_ALIGN_BEGINNING);
+	        gd.widthHint = UIUtils.getFontHeight(portText) * 7;
+	        portText.setLayoutData(gd);
+	        portText.addVerifyListener(UIUtils.getIntegerVerifyListener(Locale.getDefault()));
+	        portText.addModifyListener(textListener);
+        } else {
+        	gd.horizontalSpan = 3;
+        }
 
         dbText = UIUtils.createLabelText(addrGroup, PostgreMessages.dialog_setting_connection_database, null, SWT.BORDER);
         gd = new GridData(GridData.FILL_HORIZONTAL);
@@ -127,9 +138,9 @@ public class PostgreConnectionPage extends ConnectionPageWithAuth implements ICo
     @Override
     public boolean isComplete() {
         return super.isComplete() &&
-            hostText != null && portText != null &&
+            hostText != null &&
             !CommonUtils.isEmpty(hostText.getText()) &&
-            !CommonUtils.isEmpty(portText.getText());
+            (portText == null || !CommonUtils.isEmpty(portText.getText()));
     }
 
     @Override
@@ -144,7 +155,8 @@ public class PostgreConnectionPage extends ConnectionPageWithAuth implements ICo
             if (!CommonUtils.isEmpty(connectionInfo.getHostName())) {
                 hostText.setText(connectionInfo.getHostName());
             } else {
-                hostText.setText(PostgreConstants.DEFAULT_HOST);
+                Object defaultHost = driver.getDriverParameter("defaultHost");
+                hostText.setText(defaultHost != null ? defaultHost.toString() : PostgreConstants.DEFAULT_HOST);
             }
         }
         if (portText != null) {
@@ -199,7 +211,7 @@ public class PostgreConnectionPage extends ConnectionPageWithAuth implements ICo
     }
 
     @Override
-    public IDialogPage[] getSubPages(boolean extrasOnly, boolean forceCreate) {
+    public IDialogPage[] getDialogPages(boolean extrasOnly, boolean forceCreate) {
         return new IDialogPage[] {
             new PostgreConnectionPageAdvanced(),
             new DriverPropertiesDialogPage(this)

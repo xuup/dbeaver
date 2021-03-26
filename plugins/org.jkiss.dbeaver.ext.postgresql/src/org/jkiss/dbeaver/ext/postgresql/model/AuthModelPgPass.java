@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import java.io.*;
 import java.util.Properties;
 
 public class AuthModelPgPass extends AuthModelDatabaseNative<AuthModelPgPassCredentials> {
-
     private static final Log log = Log.getLog(AuthModelPgPass.class);
 
     public static final String PGPASSFILE_ENV_VARIABLE = "PGPASSFILE";
@@ -79,7 +78,7 @@ public class AuthModelPgPass extends AuthModelDatabaseNative<AuthModelPgPassCred
 
         String pgPassPath = System.getenv(PGPASSFILE_ENV_VARIABLE);
         if (CommonUtils.isEmpty(pgPassPath)) {
-            if (RuntimeUtils.isPlatformWindows()) {
+            if (RuntimeUtils.isWindows()) {
                 String appData = System.getenv("AppData");
                 if (appData == null) {
                     appData = System.getProperty("user.home");
@@ -149,6 +148,4 @@ public class AuthModelPgPass extends AuthModelDatabaseNative<AuthModelPgPassCred
     private static boolean matchParam(String cfgParam, String passParam) {
         return passParam.equals("*") || passParam.equalsIgnoreCase(cfgParam);
     }
-
-
 }

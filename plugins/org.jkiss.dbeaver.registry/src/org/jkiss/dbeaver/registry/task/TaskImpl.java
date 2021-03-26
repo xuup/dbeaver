@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -235,8 +235,13 @@ public class TaskImpl implements DBTTask, DBPNamedObject2, DBPObjectWithDescript
             return new RunStatistics();
         }
         try (FileReader reader = new FileReader(metaFile)) {
-            return gson.fromJson(reader, RunStatistics.class);
-        } catch (IOException e) {
+            RunStatistics statistics = gson.fromJson(reader, RunStatistics.class);
+            if (statistics == null) {
+                log.error("Null task run statistics returned");
+                return new RunStatistics();
+            }
+            return statistics;
+        } catch (Exception e) {
             log.error("Error reading task run statistics", e);
             return new RunStatistics();
         }

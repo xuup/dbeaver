@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import org.jkiss.utils.xml.XMLBuilder;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,8 +56,8 @@ public class ERDExportGraphML implements ERDExportFormatHandler
     public void exportDiagram(EntityDiagram diagram, IFigure figure, DiagramPart diagramPart, File targetFile) throws DBException
     {
         try {
-            try (FileOutputStream fos = new FileOutputStream(targetFile)) {
-                XMLBuilder xml = new XMLBuilder(fos, GeneralUtils.UTF8_ENCODING);
+            try (final OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(targetFile), GeneralUtils.UTF8_CHARSET)) {
+                XMLBuilder xml = new XMLBuilder(osw, GeneralUtils.UTF8_ENCODING);
                 xml.setButify(true);
 
                 xml.startElement("graphml");
@@ -278,7 +279,7 @@ public class ERDExportGraphML implements ERDExportFormatHandler
                 xml.endElement();
 
                 xml.flush();
-                fos.flush();
+                osw.flush();
             }
             UIUtils.launchProgram(targetFile.getAbsolutePath());
         } catch (Exception e) {

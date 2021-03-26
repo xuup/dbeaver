@@ -2,7 +2,7 @@
 <?eclipse version="3.2"?>
 <!--
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@
                                 </items>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericProcedure" label="%tree.functions.node.name" icon="#functions" description="Functions" visibleIf="object.dataSource.info.supportsStoredCode() &amp;&amp; object.dataSource.splitProceduresAndFunctions()">
+                        <folder label="%tree.functions.node.name" icon="#functions" description="Functions" visibleIf="object.dataSource.info.supportsStoredCode() &amp;&amp; object.dataSource.splitProceduresAndFunctions()">
                             <items label="%tree.functions.node.name" itemLabel="%tree.function.node.name" path="function" property="functionsOnly" icon="#function">
                                 <items label="%tree.function_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="parameters" navigable="false"/>
                             </items>
@@ -103,11 +103,11 @@
                         <folder type="org.jkiss.dbeaver.ext.generic.model.GenericSynonym" label="%tree.synonyms.node.name" icon="#synonyms" description="Synonyms" visibleIf="object.dataSource.metaModel.supportsSynonyms(object.dataSource)">
                             <items label="%tree.synonym.node.name" path="synonym" property="synonyms" icon="#synonym"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTrigger" label="%tree.triggers.node.name" icon="#triggers" description="Global triggers" visibleIf="object.dataSource.metaModel.supportsDatabaseTriggers(object.dataSource)">
+                        <folder id="databaseTrigger" type="org.jkiss.dbeaver.ext.generic.model.GenericTrigger" label="%tree.triggers.node.name" icon="#triggers" description="Global triggers" visibleIf="object.dataSource.metaModel.supportsDatabaseTriggers(object.dataSource)">
                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTrigger" label="%tree.tableTriggers.node.name" icon="#triggers" description="%tree.tableTriggers.node.tip" visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
-                            <items label="%tree.trigger.node.name" path="trigger" property="tableTriggers" icon="#trigger"/>
+                        <folder id="tableTrigger" type="org.jkiss.dbeaver.ext.generic.model.GenericTrigger" label="%tree.tableTriggers.node.name" icon="#triggers" description="%tree.tableTriggers.node.tip" visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
+                            <items label="%tree.trigger.node.name" path="tableTrigger" property="tableTriggers" icon="#trigger"/>
                         </folder>
                         <folder type="org.jkiss.dbeaver.model.struct.DBSDataType" label="%tree.dataTypes.node.name" icon="#data_types" description="%tree.dataTypes.node.tip">
                             <items label="%tree.dataType.node.name" path="dataType" property="dataTypes" icon="#data_type"/>
@@ -299,11 +299,11 @@
                     promoted="1"
                     categories="sql">
                     <os name="win32"/>
-                    <file type="jar" path="repo:/drivers/odbc/jdbc-odbc-bridge-jre7.jar" bundle="!drivers.odbc"/>
-                    <file type="lib" os="win32" arch="x86_64" path="repo:/drivers/odbc/x64/JdbcOdbc.dll" bundle="!drivers.odbc"/>
+                    <file type="jar" path="https://github.com/dbeaver/jdbc-odbc-bridge-jre7/raw/main/jdbc-odbc-bridge-jre7.jar" bundle="!drivers.odbc1"/>
+                    <file type="lib" os="win32" arch="x86_64" path="https://github.com/dbeaver/jdbc-odbc-bridge-jre7/raw/main/x64/JdbcOdbc.dll" bundle="!drivers.odbc1"/>
 
-                    <file type="jar" path="drivers/odbc/jdbc-odbc-bridge-jre7.jar" bundle="drivers.odbc"/>
-                    <file type="lib" os="win32" arch="x86_64" path="drivers/odbc/x64/JdbcOdbc.dll" bundle="drivers.odbc"/>
+                    <file type="jar" path="drivers/odbc/jdbc-odbc-bridge-jre7.jar" bundle="drivers.odbc1"/>
+                    <file type="lib" os="win32" arch="x86_64" path="drivers/odbc/x64/JdbcOdbc.dll" bundle="drivers.odbc1"/>
                 </driver>
                 <driver
                     id="derby"
@@ -339,7 +339,7 @@
                     icon="icons/derby_icon.png"
                     iconBig="icons/derby_icon_big.png"
                     category="Derby"
-                    class="org.apache.derby.jdbc.ClientDriver"
+                    class="org.apache.derby.client.ClientAutoloadedDriver"
                     sampleURL="jdbc:derby://{host}:{port}/{database};create=false"
                     defaultPort="1527"
                     webURL="http://db.apache.org/"
@@ -762,32 +762,6 @@
                     <parameter name="supports-references" value="false"/>
                 </driver>
 
-                <!-- AWS -->
-                <driver
-                    id="aws_redshift"
-                    label="Redshift (JDBC 4.1)"
-                    category="AWS"
-                    class="com.amazon.redshift.jdbc41.Driver"
-                    sampleURL="jdbc:redshift://{host}:{port}/{database}"
-                    defaultPort="5439"
-                    description="%driver.redshift.description"
-                    webURL="http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html"
-                    categories="sql,analytic,cloud">
-                    <file type="jar" path="https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.12.1017/1.2.15.1025/RedshiftJDBC41-1.2.15.1025.jar"/>
-                </driver>
-                <driver
-                    id="aws_redshift_42"
-                    label="Redshift"
-                    category="AWS"
-                    class="com.amazon.redshift.jdbc42.Driver"
-                    sampleURL="jdbc:redshift://{host}:{port}/{database}"
-                    defaultPort="5439"
-                    description="%driver.redshift.description"
-                    webURL="http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html"
-                    categories="sql,analytic,cloud">
-                    <replace provider="generic" driver="aws_redshift"/>
-                    <file type="jar" path="https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.15.1025/RedshiftJDBC42-1.2.15.1025.jar"/>
-                </driver>
                 <driver
                     id="aws_athena_42"
                     label="Athena"
@@ -846,7 +820,7 @@
                     description="Yandex ClickHouse"
                     webURL="https://github.com/yandex/clickhouse-jdbc"
                     categories="sql,analytic,columns">
-                    <file type="jar" path="maven:/ru.yandex.clickhouse:clickhouse-jdbc:RELEASE" bundle="!drivers.clickhouse"/>
+                    <file type="jar" path="maven:/ru.yandex.clickhouse:clickhouse-jdbc:RELEASE[0.2.6]" bundle="!drivers.clickhouse"/>
                     <file type="jar" path="drivers/clickhouse" bundle="drivers.clickhouse"/>
 
                     <parameter name="supports-references" value="false"/>
@@ -937,7 +911,8 @@
                     description="Trino JDBC driver, newer replacement for PrestoSQL"
                     webURL="https://trino.io/"
                     categories="sql,analytic,bigdata,hadoop">
-                    <file type="jar" path="maven:/io.trino:trino-jdbc:RELEASE"/>
+                    <file type="jar" path="maven:/io.trino:trino-jdbc:RELEASE" bundle="!drivers.trino"/>
+                    <file type="jar" path="drivers/trino" bundle="drivers.trino"/>
 
                     <parameter name="use-search-string-escape" value="true"/>
                     <parameter name="krb5.show-service" value="true"/>
@@ -1382,8 +1357,48 @@
                         defaultPort=""
                         description="Snowflake JDBC driver"
                         webURL="https://docs.snowflake.net/manuals/user-guide/jdbc-configure.html">
-                    <file type="jar" path="maven:/net.snowflake:snowflake-jdbc:RELEASE"/>
                 </driver>
+
+                <!-- Jennifer -->
+                <driver
+                        id="jennifer_jdbc"
+                        label="Jennifer"
+                        class="jennifer.jdbc.driver.JenniferDriver"
+                        icon="icons/jennifer_icon.png"
+                        iconBig="icons/jennifer_icon_big.png"
+                        sampleURL="jdbc:jennifer://{host}:{port}/"
+                        defaultPort="8001"
+                        description="Jennifer JDBC driver"
+                        webURL="https://www.jennifersoft.com"
+                        categories="sql">
+                    <file type="jar" path="https://github.com/jennifersoft/jennifer5-jdbc-driver/raw/main/dist/jennifer-jdbc-5.5.3.2.jar"/>
+                    <parameter name="supports-references" value="false"/>
+                    <parameter name="supports-indexes" value="false"/>
+                    <parameter name="omit-catalog" value="true"/>
+                    <parameter name="use-search-string-escape" value="true"/>
+                </driver>
+
+                <!-- AWS -->
+                <driver
+                        id="aws_redshift"
+                        label="Redshift (JDBC 4.1)"
+                        category="AWS"
+                        class="com.amazon.redshift.jdbc41.Driver"
+                        sampleURL="jdbc:redshift://{host}:{port}/{database}"
+                        defaultPort="5439"
+                        description="%driver.redshift.description"
+                        webURL="http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html"
+                        categories="sql,analytic,cloud"/>
+                <driver
+                        id="aws_redshift_42"
+                        label="Redshift"
+                        category="AWS"
+                        class="com.amazon.redshift.jdbc42.Driver"
+                        sampleURL="jdbc:redshift://{host}:{port}/{database}"
+                        defaultPort="5439"
+                        description="%driver.redshift.description"
+                        webURL="http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html"
+                        categories="sql,analytic,cloud"/>
 
             </drivers>
 

@@ -2,7 +2,7 @@
 <?eclipse version="3.2"?>
 <!--
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,6 +61,9 @@
         </factory>
         <factory adaptableType="org.eclipse.swt.widgets.Control" class="org.jkiss.dbeaver.erd.ui.editor.ERDEditorAdapter">
            <adapter type="org.jkiss.dbeaver.erd.ui.editor.ERDEditorPart"/>
+        </factory>
+        <factory adaptableType="org.eclipse.ui.IEditorPart" class="org.jkiss.dbeaver.erd.ui.editor.ERDEditorAdapter">
+            <adapter type="org.jkiss.dbeaver.erd.ui.editor.ERDEditorPart"/>
         </factory>
     </extension>
 
@@ -149,8 +152,8 @@
         </handler>
         <handler commandId="org.eclipse.ui.file.print" class="org.jkiss.dbeaver.erd.ui.action.ERDHandlerPrint">
             <activeWhen>
-                <with variable="activeFocusControlId">
-                    <equals value="org.jkiss.dbeaver.erd.ERDEditor"/>
+                <with variable="activeEditor">
+                    <adapt type="org.jkiss.dbeaver.erd.ui.editor.ERDEditorPart"/>
                 </with>
             </activeWhen>
         </handler>
@@ -432,7 +435,7 @@
 
     <extension point="org.eclipse.ui.menus">
         <!-- All Context menus -->
-        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?before=compare">
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=object">
             <command commandId="org.jkiss.dbeaver.erd.diagram.view" label="%command.org.jkiss.dbeaver.erd.diagram.view.name">
                 <visibleWhen checkEnabled="true"/>
             </command>

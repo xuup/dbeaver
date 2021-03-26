@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,10 +123,10 @@ public class PostgreGeometryValueHandler extends JDBCAbstractValueHandler {
     @Override
     public String getValueDisplayString(@NotNull DBSTypedObject column, Object value, @NotNull DBDDisplayFormat format) {
         if (value instanceof DBGeometry && format == DBDDisplayFormat.NATIVE) {
-            final int valueSRID = ((DBGeometry) value).getSRID();
+            int valueSRID = ((DBGeometry) value).getSRID();
             String strValue = value.toString();
             if (valueSRID != 0 && !strValue.startsWith("SRID=")) {
-                strValue = "'SRID=" + valueSRID + ";" + strValue + "'::geometry";
+                strValue = "SRID=" + valueSRID + ";" + strValue;
             }
             return strValue;
         }

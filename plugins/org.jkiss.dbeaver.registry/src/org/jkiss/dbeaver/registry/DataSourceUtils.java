@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -403,11 +403,13 @@ public class DataSourceUtils {
 
     @NotNull
     public static String getDataSourceAddressText(DBPDataSourceContainer dataSourceContainer) {
-        DBPDataSourceProvider dataSourceProvider = dataSourceContainer.getDriver().getDataSourceProvider();
-        if (dataSourceProvider instanceof DBPInformationProvider) {
-            String objectInformation = ((DBPInformationProvider) dataSourceProvider).getObjectInformation(dataSourceContainer, DBPInformationProvider.INFO_TARGET_ADDRESS);
-            if (!CommonUtils.isEmpty(objectInformation)) {
-                return objectInformation;
+        if (dataSourceContainer.getDriver().isCustomEndpointInformation()) {
+            DBPDataSourceProvider dataSourceProvider = dataSourceContainer.getDriver().getDataSourceProvider();
+            if (dataSourceProvider instanceof DBPInformationProvider) {
+                String objectInformation = ((DBPInformationProvider) dataSourceProvider).getObjectInformation(dataSourceContainer, DBPInformationProvider.INFO_TARGET_ADDRESS);
+                if (!CommonUtils.isEmpty(objectInformation)) {
+                    return objectInformation;
+                }
             }
         }
         DBPConnectionConfiguration cfg = dataSourceContainer.getConnectionConfiguration();

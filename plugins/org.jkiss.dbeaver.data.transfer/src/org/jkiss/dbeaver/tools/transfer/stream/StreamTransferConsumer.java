@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,10 +48,12 @@ import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.RuntimeUtils;
 import org.jkiss.utils.Base64;
 import org.jkiss.utils.IOUtils;
+import org.jkiss.utils.io.ByteOrderMark;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
@@ -120,6 +122,17 @@ public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsu
             columnBindings = DBUtils.makeLeafAttributeBindings(session, dataContainer, resultSet);
         }
 
+        final StreamMappingContainer mapping = settings.getDataMapping(dataContainer);
+        if (mapping != null && mapping.isComplete()) {
+            // That's a dirty way of doing things ...
+            columnBindings = Arrays.stream(columnBindings)
+                .filter(attr -> {
+                    final StreamMappingAttribute attribute = mapping.getAttribute(attr);
+                    return attribute == null || attribute.getMappingType() == StreamMappingType.export;
+                })
+                .toArray(DBDAttributeBinding[]::new);
+        }
+
         if (!initialized) {
             /*// For multi-streams export header only once
             if (!settings.isUseSingleFile() || parameters.orderNumber == 0) */{
@@ -149,7 +162,7 @@ public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsu
                 for (int i = 0; i < columnBindings.length; i++) {
                     DBDAttributeBinding column = columnBindings[i];
                     Object value = DBUtils.getAttributeValue(column, columnMetas, srcRow);
-                    if (value instanceof DBDContent && !settings.isOutputClipboard()) {
+                    if (value instanceof DBDContent) {
                         // Check for binary type export
                         if (!ContentUtils.isTextContent((DBDContent) value)) {
                             switch (settings.getLobExtractType()) {
@@ -161,8 +174,10 @@ public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsu
                                     // Just pass content to exporter
                                     break;
                                 case FILES:
-                                    // Save content to file and pass file reference to exporter
-                                    value = saveContentToFile(session.getProgressMonitor(), (DBDContent) value);
+                                    if (!settings.isOutputClipboard()) {
+                                        // Save content to file and pass file reference to exporter
+                                        value = saveContentToFile(session.getProgressMonitor(), (DBDContent) value);
+                                    }
                                     break;
                             }
                         }
@@ -200,8 +215,7 @@ public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsu
     private File saveContentToFile(DBRProgressMonitor monitor, DBDContent content)
         throws IOException, DBCException {
         DBDContentStorage contents = content.getContents(monitor);
-        if (contents == null) {
-            log.warn("Null value content");
+        if (DBUtils.isNullValue(contents)) {
             return null;
         }
         if (lobDirectory == null) {
@@ -290,10 +304,12 @@ public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsu
 
         // Check for BOM and write it to the stream
         if (!parameters.isBinary && settings.isOutputEncodingBOM()) {
-            byte[] bom = GeneralUtils.getCharsetBOM(settings.getOutputEncoding());
-            if (bom != null) {
-                outputStream.write(bom);
+            try {
+                final ByteOrderMark bom = ByteOrderMark.fromCharset(settings.getOutputEncoding());
+                outputStream.write(bom.getBytes());
                 outputStream.flush();
+            } catch (IllegalArgumentException e) {
+                log.debug("Error writing byte order mask", e);
             }
         }
 

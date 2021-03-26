@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.jkiss.dbeaver.core;
 
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
@@ -126,11 +125,10 @@ public class DBeaverCore extends BasePlatformImpl {
         if (!PlatformUI.isWorkbenchRunning()) {
             return false;
         }
-        IWorkbench workbench = PlatformUI.getWorkbench();
-        return workbench == null || workbench.isClosing();
+        return false;
     }
 
-    private static void setClosing(boolean closing) {
+    static void setClosing(boolean closing) {
         isClosing = closing;
     }
 

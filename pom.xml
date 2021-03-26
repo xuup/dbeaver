@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <dbeaver-version>7.3.4</dbeaver-version>
+        <dbeaver-version>21.0.2</dbeaver-version>
         <dbeaver-product>DBeaver</dbeaver-product>
         <tycho-version>2.0.0</tycho-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -126,29 +126,6 @@
                 </configuration>
             </plugin>
 
-<!--
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <compilerArgs>
-                        <arg>-XDignore.symbol.file=true</arg>
-                    </compilerArgs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>compiletests</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
--->
-
         </plugins>
 
     </build>
@@ -164,9 +141,50 @@
 
                 <!-- Products -->
                 <module>product/appstore</module>
-                <module>product/standalone</module>
+                <module>product/community</module>
                 <module>product/repositories</module>
             </modules>
+        </profile>
+
+        <!-- Enables build for all platforms including ARM -->
+        <profile>
+            <id>all-platforms</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.eclipse.tycho</groupId>
+                        <artifactId>target-platform-configuration</artifactId>
+                        <version>${tycho-version}</version>
+                        <configuration>
+                            <environments>
+                                <environment>
+                                    <os>win32</os>
+                                    <ws>win32</ws>
+                                    <arch>x86_64</arch>
+                                </environment>
+                                <environment>
+                                    <os>linux</os>
+                                    <ws>gtk</ws>
+                                    <arch>x86_64</arch>
+                                </environment>
+                                <environment>
+                                    <os>linux</os>
+                                    <ws>gtk</ws>
+                                    <arch>aarch64</arch>
+                                </environment>
+                                <environment>
+                                    <os>macosx</os>
+                                    <ws>cocoa</ws>
+                                    <arch>x86_64</arch>
+                                </environment>
+                            </environments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
         <!-- Profile for jars sign -->
@@ -178,9 +196,15 @@
             <build>
                 <plugins>
                     <plugin>
+                        <!--
+                            Jar sign can be slow, especially if you need to sign hundreds of them.
+                            Performance hints:
+                                - Force SHA512withRSA algorithm (https://stackoverflow.com/questions/44003975/ev-code-signing-extremely-slow)
+                                - Install fast secure random generator (https://stackoverflow.com/questions/137212/how-to-deal-with-a-slow-securerandom-generator)
+                         -->
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jarsigner-plugin</artifactId>
-                        <version>1.4</version>
+                        <version>3.0.0</version>
                         <configuration>
                             <keystore>${key.storage.path}/jar-sign.keystore</keystore>
                             <tsa>${tsa}</tsa>
@@ -188,6 +212,10 @@
                             <storepass>dbeaver</storepass>
                             <alias>dbeaver</alias>
                             <keypass>dbeaver</keypass>
+                            <arguments>
+                                <argument>-sigalg</argument>
+                                <argument>SHA512withRSA</argument>
+                            </arguments>
                         </configuration>
                         <executions>
                             <execution>

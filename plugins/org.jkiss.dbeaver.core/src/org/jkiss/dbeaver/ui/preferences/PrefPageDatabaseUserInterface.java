@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  * Copyright (C) 2011-2012 Eugene Fradkin (eugene.fradkin@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -130,7 +130,7 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
 
             longOperationsTimeout = UIUtils.createLabelSpinner(agentGroup, CoreMessages.pref_page_ui_general_label_long_operation_timeout + UIMessages.label_sec, 0, 0, Integer.MAX_VALUE);
 
-            if (RuntimeUtils.isPlatformMacOS()) {
+            if (RuntimeUtils.isMacOS()) {
                 ControlEnableState.disable(agentGroup);
             }
         }
@@ -208,5 +208,4 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
     public void setElement(IAdaptable element)
     {
     }
-
 }

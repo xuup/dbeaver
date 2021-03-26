@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,6 +49,12 @@ public interface DBPApplication
      * Like license info or some custom produce info
      */
     String getInfoDetails();
+
+    /**
+     * Returns last user activity time
+     * @return -1 by default
+     */
+    long getLastUserActivityTime();
 
     /**
      * Default project name, e.g. 'General'.

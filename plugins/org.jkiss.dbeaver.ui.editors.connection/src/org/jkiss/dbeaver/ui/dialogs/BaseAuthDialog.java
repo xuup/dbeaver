@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ public class BaseAuthDialog extends BaseDialog implements BlockingPopupDialog
 {
     private static final String DIALOG_ID = "DBeaver.BaseAuthDialog";//$NON-NLS-1$
 
+    private String userNameLabel = UIConnectionMessages.dialog_connection_auth_label_username;
+    private String passwordLabel = UIConnectionMessages.dialog_connection_auth_label_password;
     private boolean passwordOnly;
     private boolean showSavePassword;
     private DBPAuthInfo authInfo = new DBPAuthInfo();
@@ -54,6 +56,14 @@ public class BaseAuthDialog extends BaseDialog implements BlockingPopupDialog
     @Override
     protected IDialogSettings getDialogBoundsSettings() {
         return UIUtils.getDialogSettings(DIALOG_ID);
+    }
+
+    public void setUserNameLabel(String userNameLabel) {
+        this.userNameLabel = userNameLabel;
+    }
+
+    public void setPasswordLabel(String passwordLabel) {
+        this.passwordLabel = passwordLabel;
     }
 
     public DBPAuthInfo getAuthInfo()
@@ -123,7 +133,7 @@ public class BaseAuthDialog extends BaseDialog implements BlockingPopupDialog
             credGroup.setLayoutData(gd);
             if (!passwordOnly) {
                 Label usernameLabel = new Label(credGroup, SWT.NONE);
-                usernameLabel.setText(UIConnectionMessages.dialog_connection_auth_label_username);
+                usernameLabel.setText(this.userNameLabel);
                 usernameLabel.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_END));
 
                 usernameText = new Text(credGroup, SWT.BORDER);
@@ -138,7 +148,7 @@ public class BaseAuthDialog extends BaseDialog implements BlockingPopupDialog
             }
 
             Label passwordLabel = new Label(credGroup, SWT.NONE);
-            passwordLabel.setText(UIConnectionMessages.dialog_connection_auth_label_password);
+            passwordLabel.setText(this.passwordLabel);
             passwordLabel.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_END));
 
             passwordText = new Text(credGroup, SWT.BORDER | SWT.PASSWORD);

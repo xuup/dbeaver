@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.*;
+import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.navigator.meta.DBXTreeItem;
 import org.jkiss.dbeaver.model.navigator.meta.DBXTreeNode;
 import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
@@ -255,7 +256,7 @@ public class DBNDataSource extends DBNDatabaseNode implements DBNContainer, IAda
         DBPDataSourceFolder folder = dataSource.getFolder();
         for (DBNNode node : nodes) {
             if (node instanceof DBNDataSource) {
-                if (!((DBNDataSource) node).setFolder(folder)) {
+                if (!((DBNDataSource) node).moveToFolder(getOwnerProject(), folder)) {
                     return;
                 }
             } else if (node instanceof DBNLocalFolder) {
@@ -265,7 +266,7 @@ public class DBNDataSource extends DBNDatabaseNode implements DBNContainer, IAda
         DBNModel.updateConfigAndRefreshDatabases(this);
     }
 
-    public boolean setFolder(DBPDataSourceFolder folder)
+    public boolean moveToFolder(DBPProject project, DBPDataSourceFolder folder)
     {
         final DBPDataSourceFolder oldFolder = dataSource.getFolder();
         if (oldFolder == folder) {
@@ -284,6 +285,10 @@ public class DBNDataSource extends DBNDatabaseNode implements DBNContainer, IAda
                 new DBPEvent(DBPEvent.Action.OBJECT_UPDATE, dataSource));
         }
         return node;
+    }
+
+    public void cleanupNode() {
+        clearNode(true);
     }
 
     @Override

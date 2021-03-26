@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
 import org.jkiss.dbeaver.model.struct.DBSObjectFilter;
 import org.jkiss.dbeaver.model.struct.DBStructUtils;
+import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
 import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.CommonUtils;
@@ -550,9 +551,6 @@ public class GenericMetaModel {
             return null;
         }
 
-        if (CommonUtils.isEmpty(tableName)) {
-            return null;
-        }
         if (tableType != null && INVALID_TABLE_TYPES.contains(tableType)) {
             // Bad table type. Just skip it
             return null;
@@ -607,6 +605,12 @@ public class GenericMetaModel {
     }
 
     public boolean supportsTableDDLSplit(GenericTableBase sourceObject) {
+        return true;
+    }
+
+    // Some database (like Informix) do not support foreign key declaration as nested.
+    // DDL for these tables must contain definition of FK outside main brackets (ALTER TABLE ... ADD CONSTRAINT FOREIGN KEY)
+    public boolean supportNestedForeignKeys() {
         return true;
     }
 
@@ -667,6 +671,26 @@ public class GenericMetaModel {
                         owner.getDataSource().getAllObjectsPattern() :
                         forParent.getName())
                 .getSourceStatement();
+    }
+
+    public boolean isFKConstraintWordDuplicated() {
+        return false;
+    }
+
+    public String generateOnDeleteFK(DBSForeignKeyModifyRule deleteRule) {
+        String deleteClause = deleteRule.getClause();
+        if (!CommonUtils.isEmpty(deleteClause)) {
+            return "ON DELETE " + deleteClause;
+        }
+        return null;
+    }
+
+    public String generateOnUpdateFK(DBSForeignKeyModifyRule updateRule) {
+        String updateClause = updateRule.getClause();
+        if (!CommonUtils.isEmpty(updateClause)) {
+            return "ON UPDATE " + updateClause;
+        }
+        return null;
     }
 
     //////////////////////////////////////////////////////

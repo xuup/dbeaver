@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,7 @@ import java.util.Map;
 /**
  * PostgreServerExtension
  */
-public interface PostgreServerExtension
-{
+public interface PostgreServerExtension {
     String getServerTypeName();
 
     boolean supportsTransactions();
@@ -141,4 +140,8 @@ public interface PostgreServerExtension
     boolean supportSerialTypes();
 
     boolean supportsBackslashStringEscape();
+
+    boolean supportsDisablingAllTriggers();
+
+    boolean supportsGeneratedColumns();
 }

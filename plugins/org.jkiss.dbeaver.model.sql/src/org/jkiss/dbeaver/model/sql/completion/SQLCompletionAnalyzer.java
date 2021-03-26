@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ public class SQLCompletionAnalyzer implements DBRRunnableParametrized<DBRProgres
                         wordDetector.shiftOffset(-SQLCompletionAnalyzer.ALL_COLUMNS_PATTERN.length());
                         searchPrefix = SQLCompletionAnalyzer.ALL_COLUMNS_PATTERN;
                         request.setQueryType(SQLCompletionRequest.QueryType.COLUMN);
-                    } else if (SQLConstants.KEYWORD_JOIN.equals(prevKeyWord)) {
+                    } else if (SQLConstants.KEYWORD_JOIN.equals(prevKeyWord) && isPrevWordEmpty) {
                         request.setQueryType(SQLCompletionRequest.QueryType.JOIN);
                     } else {
                         if (!isPrevWordEmpty && CommonUtils.isEmpty(prevDelimiter)) {
@@ -1042,9 +1042,13 @@ public class SQLCompletionAnalyzer implements DBRRunnableParametrized<DBRProgres
         @NotNull Map<String, Object> params)
     {
         String alias = null;
+        SQLTableAliasInsertMode aliasMode = SQLTableAliasInsertMode.NONE;
         String prevWord = request.getWordDetector().getPrevKeyWord();
         if (SQLConstants.KEYWORD_FROM.equals(prevWord) || SQLConstants.KEYWORD_JOIN.equals(prevWord)) {
-            if (object instanceof DBSEntity && ((DBSEntity) object).getDataSource().getContainer().getPreferenceStore().getBoolean(SQLModelPreferences.SQL_PROPOSAL_INSERT_TABLE_ALIAS)) {
+            if (object instanceof DBSEntity) {
+                aliasMode = SQLTableAliasInsertMode.fromPreferences(((DBSEntity) object).getDataSource().getContainer().getPreferenceStore());
+            }
+            if (aliasMode != SQLTableAliasInsertMode.NONE) {
                 SQLDialect dialect = SQLUtils.getDialectFromObject(object);
                 if (dialect.supportsAliasInSelect()) {
                     String firstKeyword = SQLUtils.getFirstKeyword(dialect, request.getActiveQuery().getText());
@@ -1072,6 +1076,10 @@ public class SQLCompletionAnalyzer implements DBRRunnableParametrized<DBRProgres
                             }
                             return Pattern.compile("\\s+" + s + "[^\\w]+").matcher(queryText).find();
                         });
+                        if (alias.equalsIgnoreCase(object.getName())) {
+                            // Don't use alias, when it's identical to entity name
+                            alias = "";
+                        }
                     }
                 }
             }
@@ -1110,7 +1118,10 @@ public class SQLCompletionAnalyzer implements DBRRunnableParametrized<DBRProgres
             replaceString = DBUtils.getObjectShortName(object);
         }
         if (!CommonUtils.isEmpty(alias)) {
-            replaceString += " " + /*convertKeywordCase(request, "as", false) + " " + */alias;
+            if (aliasMode == SQLTableAliasInsertMode.EXTENDED) {
+                replaceString += " " + convertKeywordCase(request, "as", false);
+            }
+            replaceString += " " + alias;
         }
         return createCompletionProposal(
             request,

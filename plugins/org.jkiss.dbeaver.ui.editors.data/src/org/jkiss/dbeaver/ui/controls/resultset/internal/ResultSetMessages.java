@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -150,6 +150,17 @@ public class ResultSetMessages extends NLS {
     public static String dialog_value_view_job_selector_name;
     public static String dialog_value_view_label_dictionary;
 
+    public static String dialog_filter_value_edit_title;
+    public static String dialog_filter_value_edit_label_choose_values;
+    public static String dialog_filter_value_edit_label_define_description;
+    public static String dialog_filter_value_edit_text_hint;
+    public static String dialog_filter_value_edit_table_value_label;
+    public static String dialog_filter_value_edit_table_value_description;
+    public static String dialog_filter_value_edit_table_description_label;
+    public static String dialog_filter_value_edit_table_description_description;
+    public static String dialog_filter_value_edit_table_count_label;
+    public static String dialog_filter_value_edit_table_count_description;
+
     public static String dialog_control_label_massage;
     public static String dialog_cursor_view_monitor_rows_fetched;
 
@@ -204,6 +215,16 @@ public class ResultSetMessages extends NLS {
     public static String dialog_data_format_profiles_error_message;
     public static String dialog_data_format_profiles_error_title;
     public static String dialog_data_format_profiles_title;
+
+    public static String dialog_save_script_title;
+    public static String dialog_save_script_button_use_qualified_names;
+    public static String dialog_save_script_button_use_qualified_names_tip;
+    public static String dialog_save_script_button_delete_cascade;
+    public static String dialog_save_script_button_delete_cascade_tip;
+    public static String dialog_save_script_button_delete_deep_cascade;
+    public static String dialog_save_script_button_delete_deep_cascade_tip;
+    public static String dialog_save_script_button_bar_button_persist;
+    public static String dialog_save_script_button_bar_button_copy;
 
     //Preference/Properties
     // ResultSetsMain

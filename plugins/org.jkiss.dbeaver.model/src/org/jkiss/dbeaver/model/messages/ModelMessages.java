@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  * Copyright (C) 2011-2012 Eugene Fradkin (eugene.fradkin@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,8 @@ public class ModelMessages extends NLS {
 
 	public static String error_can_create_temp_dir;
 	public static String error_can_create_temp_file;
+	public static String dialog_web_download_text_known;
+	public static String dialog_web_download_text_unknown;
 
 	public static String common_error_sql;
 

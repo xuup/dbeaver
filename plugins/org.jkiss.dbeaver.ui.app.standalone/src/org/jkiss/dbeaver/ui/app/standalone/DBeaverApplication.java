@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +57,7 @@ import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 import org.jkiss.utils.StandardConstants;
+import org.osgi.framework.Version;
 
 import java.io.*;
 import java.net.URL;
@@ -159,7 +160,8 @@ public class DBeaverApplication extends BaseApplicationImpl implements DBPApplic
         return instance;
     }
 
-    public long getUserActivityTime() {
+    @Override
+    public long getLastUserActivityTime() {
         return lastUserActivityTime;
     }
 
@@ -644,7 +646,7 @@ public class DBeaverApplication extends BaseApplicationImpl implements DBPApplic
         return msgResult;
     }
 
-    public void notifyVersionUpgrade(VersionDescriptor currentVersion, VersionDescriptor newVersion, boolean showSkip) {
+    public void notifyVersionUpgrade(@NotNull Version currentVersion, @NotNull VersionDescriptor newVersion, boolean showSkip) {
         VersionUpdateDialog dialog = new VersionUpdateDialog(
             UIUtils.getActiveWorkbenchShell(),
             currentVersion,

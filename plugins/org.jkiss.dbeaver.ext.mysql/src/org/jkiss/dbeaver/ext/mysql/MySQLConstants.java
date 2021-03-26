@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
  * MySQL constants
  */
 public class MySQLConstants {
-
     public static final int DEFAULT_PORT = 3306;
     public static final String DEFAULT_HOST = "localhost";
     public static final String DEFAULT_USER = "root";
@@ -213,9 +212,12 @@ public class MySQLConstants {
     public static final String TYPE_YEAR = "year";
     public static final String TYPE_ENUM = "enum";
     public static final String TYPE_SET = "set";
+    public static final String TYPE_VARBINARY = "VARBINARY";
 
     public static final String BIN_FOLDER = "bin";
     public static final String ENV_VAR_MYSQL_PWD = "MYSQL_PWD";
+
+    public static final String FLAG_VERSION = "-V";
 
     public static final String EXTRA_INFO_VIRTUAL_GENERATED = "VIRTUAL GENERATED";
 }

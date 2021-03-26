@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,10 +44,16 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
+import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import org.jkiss.dbeaver.model.access.DBAUser;
 import org.jkiss.dbeaver.model.navigator.*;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
 import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
+import org.jkiss.dbeaver.model.struct.DBSEntity;
+import org.jkiss.dbeaver.model.struct.DBSObject;
+import org.jkiss.dbeaver.model.struct.DBSStructContainer;
+import org.jkiss.dbeaver.model.struct.rdb.*;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.ui.AbstractUIJob;
 import org.jkiss.dbeaver.ui.ActionUtils;
@@ -83,20 +89,27 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
 
     private boolean filterShowConnected = false;
     private String filterPlaceholderText = UINavigatorMessages.actions_navigator_search_tip;
+    private DatabaseNavigatorTreeFilterObjectType filterObjectType = DatabaseNavigatorTreeFilterObjectType.table;
 
     public DatabaseNavigatorTree(Composite parent, DBNNode rootNode, int style) {
         this(parent, rootNode, style, false);
     }
 
     public DatabaseNavigatorTree(Composite parent, DBNNode rootNode, int style, boolean showRoot) {
-        this(parent, rootNode, style, showRoot, null);
+        this(parent, rootNode, style, showRoot, null, null);
     }
 
-    public DatabaseNavigatorTree(Composite parent, DBNNode rootNode, int style, boolean showRoot, INavigatorFilter navigatorFilter)
-    {
+    public DatabaseNavigatorTree(Composite parent, DBNNode rootNode, int style, boolean showRoot, INavigatorFilter navigatorFilter) {
+        this(parent, rootNode, style, showRoot, navigatorFilter, null);
+    }
+
+    public DatabaseNavigatorTree(Composite parent, DBNNode rootNode, int style, boolean showRoot, INavigatorFilter navigatorFilter, String filterPlaceholderText) {
         super(parent, SWT.NONE);
         this.setLayout(new FillLayout());
         this.navigatorFilter = navigatorFilter;
+        if (filterPlaceholderText != null) {
+            this.filterPlaceholderText = filterPlaceholderText;
+        }
         this.model = DBWorkbench.getPlatform().getNavigatorModel();
         this.model.addListener(this);
         addDisposeListener(e -> {
@@ -118,14 +131,9 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
         tree.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_ARROW));
         treeViewer.setUseHashlookup(true);
 
-        DatabaseNavigatorLabelProvider labelProvider = new DatabaseNavigatorLabelProvider(treeViewer);
+        DatabaseNavigatorLabelProvider labelProvider = createLabelProvider(this);
         treeViewer.setLabelProvider(labelProvider);
-        treeViewer.setContentProvider(new DatabaseNavigatorContentProvider(this, showRoot));
-
-        if (false) {
-            // We don't need it
-            tree.addListener(SWT.PaintItem, new TreeBackgroundColorPainter(labelProvider));
-        }
+        treeViewer.setContentProvider(createContentProvider(showRoot));
 
         if (rootNode != null) {
             setInput(rootNode);
@@ -156,10 +164,35 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
                 tree.addListener(SWT.MouseEnter, mouseListener);
                 tree.addListener(SWT.MouseExit, mouseListener);
             }
+            {
+                Listener mouseListener = e -> {
+                    TreeItem item = tree.getItem(new Point(e.x, e.y));
+                    if (item != null) {
+                        Object element = item.getData();
+                        if (element instanceof DBNNode) {
+                            itemRenderer.handleHover((DBNNode) element, tree, item, e);
+                        }
+                    }
+                };
+                tree.addListener(SWT.MouseHover, mouseListener);
+                tree.addListener(SWT.MouseMove, mouseListener);
+                tree.addListener(SWT.MouseEnter, mouseListener);
+                tree.addListener(SWT.MouseExit, mouseListener);
+            }
             tree.addListener(SWT.MouseDown, event -> onItemMouseDown(tree, event, false));
             tree.addListener(SWT.MouseDoubleClick, event -> onItemMouseDown(tree, event, true));
             LinuxKeyboardArrowsListener.installOn(tree);
         }
+    }
+
+    @NotNull
+    protected DatabaseNavigatorContentProvider createContentProvider(boolean showRoot) {
+        return new DatabaseNavigatorContentProvider(this, showRoot);
+    }
+
+    @NotNull
+    protected DatabaseNavigatorLabelProvider createLabelProvider(DatabaseNavigatorTree tree) {
+        return new DatabaseNavigatorLabelProvider(tree.treeViewer);
     }
 
     public boolean isFilterShowConnected() {
@@ -171,16 +204,11 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
     }
 
     public DatabaseNavigatorTreeFilterObjectType getFilterObjectType() {
-        if (navigatorFilter instanceof DatabaseNavigatorTreeFilter) {
-            return ((DatabaseNavigatorTreeFilter) navigatorFilter).getFilterObjectType();
-        }
-        return DatabaseNavigatorTreeFilterObjectType.table;
+        return filterObjectType;
     }
 
     public void setFilterObjectType(DatabaseNavigatorTreeFilterObjectType filterObjectType) {
-        if (navigatorFilter instanceof DatabaseNavigatorTreeFilter) {
-            ((DatabaseNavigatorTreeFilter) navigatorFilter).setFilterObjectType(filterObjectType);
-        }
+        this.filterObjectType = filterObjectType;
     }
 
     public ILabelDecorator getLabelDecorator() {
@@ -693,9 +721,43 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
             {
                 return hasVisibleConnections(viewer, (DBNLocalFolder)element);
             }
-            if (filter.select(element)) {
+            if (!filter.select(element)) {
+                return false;
+            }
+
+            boolean needToMatch = filter.filterObjectByPattern(element);
+            if (!needToMatch && element instanceof DBNDatabaseNode) {
+                DBSObject object = ((DBNDatabaseNode) element).getObject();
+                switch (filterObjectType) {
+                    case connection:
+                        needToMatch = (object instanceof DBPDataSourceContainer);
+                        break;
+                    case container:
+                        needToMatch = object instanceof DBSSchema || object instanceof DBSCatalog;
+                        if (needToMatch) {
+                            try {
+                                Class<? extends DBSObject> primaryChildType = ((DBSStructContainer) object).getPrimaryChildType(null);
+                                needToMatch = !DBSStructContainer.class.isAssignableFrom(primaryChildType);
+                            } catch (Exception e) {
+                                log.debug(e);
+                            }
+                        }
+                        break;
+                    default:
+                        needToMatch =
+                            object instanceof DBSEntity ||
+                                object instanceof DBSProcedure ||
+                                object instanceof DBSTableIndex ||
+                                object instanceof DBSPackage ||
+                                object instanceof DBSSequence ||
+                                object instanceof DBAUser;
+                        break;
+                }
+            }
+            if (!needToMatch) {
                 return true;
             }
+
             return super.isLeafMatch(viewer, element);
         }
 
@@ -744,7 +806,7 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
         protected Composite createFilterControls(Composite parent) {
             super.createFilterControls(parent);
 
-            if (navigatorFilter instanceof DatabaseNavigatorTreeFilter) {
+            if (!UIUtils.isInDialog(parent) && navigatorFilter instanceof DatabaseNavigatorTreeFilter) {
                 ((GridLayout)parent.getLayout()).numColumns++;
 
                 IWorkbenchWindow workbenchWindow = UIUtils.getActiveWorkbenchWindow();
@@ -825,10 +887,6 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
 
     protected String getFilterPlaceholderText() {
         return filterPlaceholderText;
-    }
-
-    public void setFilterPlaceholderText(String filterPlaceholderText) {
-        this.filterPlaceholderText = filterPlaceholderText;
     }
 
     // Called by filtering job

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -127,6 +128,12 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
                     log.debug(e);
                 }
             }
+            if (postgreColumn.getTable() instanceof PostgreTableForeign) {
+                String[] foreignTableColumnOptions = postgreColumn.getForeignTableColumnOptions();
+                if (foreignTableColumnOptions != null && foreignTableColumnOptions.length != 0) {
+                    sql.append(" OPTIONS(").append(String.join("," , Arrays.asList(foreignTableColumnOptions))).append(")");
+                }
+            }
             if (rawType != null) {
                 sql.append("[]");
             }
@@ -171,6 +178,13 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
         }
     };
 
+    protected final ColumnModifier<PostgreTableColumn> PostgreGeneratedModifier = (monitor, column, sql, command) -> {
+        String generatedValue = column.getGeneratedValue();
+        if (!CommonUtils.isEmpty(generatedValue)) {
+            sql.append(" GENERATED ALWAYS AS (").append(generatedValue).append(") STORED");
+        }
+    };
+
     @Nullable
     @Override
     public DBSObjectCache<? extends DBSObject, PostgreTableColumn> getObjectsCache(PostgreTableColumn object)
@@ -180,7 +194,7 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
 
     protected ColumnModifier[] getSupportedModifiers(PostgreTableColumn column, Map<String, Object> options)
     {
-        ColumnModifier[] modifiers = {PostgreDataTypeModifier, NullNotNullModifier, PostgreDefaultModifier, PostgreIdentityModifier, PostgreCollateModifier};
+        ColumnModifier[] modifiers = {PostgreDataTypeModifier, NullNotNullModifier, PostgreDefaultModifier, PostgreIdentityModifier, PostgreCollateModifier, PostgreGeneratedModifier};
         if (CommonUtils.getOption(options, DBPScriptObject.OPTION_INCLUDE_COMMENTS)) {
             modifiers = ArrayUtils.add(ColumnModifier.class, modifiers, PostgreCommentModifier);
         }

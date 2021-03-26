@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ public class GenericProcedure extends AbstractProcedure<GenericDataSource, Gener
         return columns;
     }
 
-    private void loadProcedureColumns(DBRProgressMonitor monitor) throws DBException
+    public void loadProcedureColumns(DBRProgressMonitor monitor) throws DBException
     {
         Collection<? extends GenericProcedure> procedures = getContainer().getProcedures(monitor, getName());
         if (procedures == null || !procedures.contains(this)) {
@@ -235,7 +235,7 @@ public class GenericProcedure extends AbstractProcedure<GenericDataSource, Gener
 
     }
 
-    private void addColumn(GenericProcedureParameter column)
+    public void addColumn(GenericProcedureParameter column)
     {
         if (this.columns == null) {
             this.columns = new ArrayList<>();

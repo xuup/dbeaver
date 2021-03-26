@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,14 +39,14 @@ public class NestedMultiLineRule extends MultiLineRule {
      */
     private boolean fRollback;
 
-    public NestedMultiLineRule(String startSequence, String endSequence, TPToken token) {
-        super(startSequence, endSequence, token, (char) 0, true);
+    public NestedMultiLineRule(String startSequence, String endSequence, TPToken token, char escapeCharacter, boolean breaksOnEOF) {
+        super(startSequence, endSequence, token, escapeCharacter, breaksOnEOF);
     }
 
     @Override
-    public TPToken evaluate(TPCharacterScanner scanner) {
+    protected TPToken doEvaluate(TPCharacterScanner scanner, boolean resume) {
         fNestingLevel = 1;
-        return super.evaluate(scanner);
+        return super.doEvaluate(scanner, resume);
     }
 
     @Override

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.jkiss.dbeaver.model.impl.sql.edit.struct;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.*;
 import org.jkiss.dbeaver.model.edit.DBECommandContext;
+import org.jkiss.dbeaver.model.edit.DBEObjectWithDependencies;
 import org.jkiss.dbeaver.model.edit.DBEPersistAction;
 import org.jkiss.dbeaver.model.edit.prop.DBECommandComposite;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
@@ -29,20 +30,20 @@ import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
 import org.jkiss.dbeaver.model.messages.ModelMessages;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
+import org.jkiss.dbeaver.model.struct.*;
 import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
+import org.jkiss.dbeaver.model.struct.rdb.DBSTableColumn;
+import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex;
+import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndexColumn;
 import org.jkiss.utils.CommonUtils;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Table column manager. Fits for all composite entities including NoSQL.
  */
 public abstract class SQLTableColumnManager<OBJECT_TYPE extends DBSEntityAttribute, TABLE_TYPE extends DBSEntity>
-    extends SQLObjectEditor<OBJECT_TYPE, TABLE_TYPE>
+    extends SQLObjectEditor<OBJECT_TYPE, TABLE_TYPE> implements DBEObjectWithDependencies
 {
     public static final long DDL_FEATURE_OMIT_COLUMN_CLAUSE_IN_DROP = 1;
     public static final long DDL_FEATURE_USER_BRACKETS_IN_DROP = 2;
@@ -57,7 +58,7 @@ public abstract class SQLTableColumnManager<OBJECT_TYPE extends DBSEntityAttribu
     protected final ColumnModifier<OBJECT_TYPE> DataTypeModifier = (monitor, column, sql, command) -> {
         final String typeName = column.getTypeName();
         DBPDataKind dataKind = column.getDataKind();
-        final DBSDataType dataType = findDataType(column.getDataSource(), typeName);
+        final DBSDataType dataType = findDataType(column, typeName);
         sql.append(' ').append(typeName);
         if (dataType == null) {
             log.debug("Type name '" + typeName + "' is not supported by driver"); //$NON-NLS-1$ //$NON-NLS-2$
@@ -247,21 +248,79 @@ public abstract class SQLTableColumnManager<OBJECT_TYPE extends DBSEntityAttribu
         }
     }
 
-    private static DBSDataType findDataType(DBPDataSource dataSource, String typeName)
+    private static DBSDataType findDataType(DBSObject object, String typeName)
     {
-        if (dataSource instanceof DBPDataTypeProvider) {
-            return ((DBPDataTypeProvider) dataSource).getLocalDataType(typeName);
+        DBPDataTypeProvider dataTypeProvider = DBUtils.getParentOfType(DBPDataTypeProvider.class, object);
+        if (dataTypeProvider != null) {
+            return dataTypeProvider.getLocalDataType(typeName);
         }
         return null;
     }
 
-    protected static DBSDataType findBestDataType(DBPDataSource dataSource, String ... typeNames)
+    protected static DBSDataType findBestDataType(DBSObject object, String ... typeNames)
     {
-        if (dataSource instanceof DBPDataTypeProvider) {
-            return DBUtils.findBestDataType(((DBPDataTypeProvider) dataSource).getLocalDataTypes(), typeNames);
+        DBPDataTypeProvider dataTypeProvider = DBUtils.getParentOfType(DBPDataTypeProvider.class, object);
+        if (dataTypeProvider != null) {
+            return DBUtils.findBestDataType(dataTypeProvider.getLocalDataTypes(), typeNames);
         }
         return null;
     }
 
+    @Override
+    public List<? extends DBSObject> getDependentObjectsList(DBRProgressMonitor monitor, DBSObject object) throws DBException {
+        DBSObject dbsObject = object.getParentObject();
+        Set<DBSObject> dependentObjectsList = new HashSet<>();
+        if (dbsObject instanceof DBSEntity && object instanceof DBSEntityAttribute) {
+            DBSEntity parentObject = (DBSEntity) dbsObject;
+
+            Collection<? extends DBSEntityConstraint> constraints = parentObject.getConstraints(monitor);
+            if (!CommonUtils.isEmpty(constraints)) {
+                for (DBSEntityConstraint constraint : constraints) {
+                    addDependentConstraints(monitor, (DBSEntityAttribute) object, dependentObjectsList, constraint);
+                }
+            }
+
+            Collection<? extends DBSEntityAssociation> associations = parentObject.getAssociations(monitor);
+            if (!CommonUtils.isEmpty(associations)) {
+                for (DBSEntityAssociation association : associations) {
+                    addDependentConstraints(monitor, (DBSEntityAttribute) object, dependentObjectsList, association);
+                }
+            }
+        }
+
+        if (dbsObject instanceof DBSTable) {
+            Collection<? extends DBSTableIndex> indexes = ((DBSTable) dbsObject).getIndexes(monitor);
+            if (!CommonUtils.isEmpty(indexes)) {
+                for (DBSTableIndex index : indexes) {
+                    List<? extends DBSTableIndexColumn> attributeReferences = index.getAttributeReferences(monitor);
+                    if (!CommonUtils.isEmpty(attributeReferences)) {
+                        for (DBSTableIndexColumn indexColumn : attributeReferences) {
+                            DBSTableColumn tableColumn = indexColumn.getTableColumn();
+                            if (tableColumn == object) {
+                                dependentObjectsList.add(index);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        return new ArrayList<>(dependentObjectsList);
+    }
+
+    private void addDependentConstraints(DBRProgressMonitor monitor, DBSEntityAttribute object, Set<DBSObject> dependentObjectsList, DBSObject constraint) throws DBException {
+        if (constraint instanceof DBSEntityReferrer) {
+            List<? extends DBSEntityAttributeRef> attributeReferences = ((DBSEntityReferrer) constraint).getAttributeReferences(monitor);
+            if (!CommonUtils.isEmpty(attributeReferences)) {
+                for (DBSEntityAttributeRef attributeRef : attributeReferences) {
+                    if (attributeRef.getAttribute() == object) {
+                        dependentObjectsList.add(constraint);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 

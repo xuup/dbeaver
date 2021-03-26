@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLState;
 import org.jkiss.dbeaver.model.struct.*;
+import org.jkiss.dbeaver.model.struct.cache.SimpleObjectCache;
 import org.jkiss.dbeaver.runtime.net.DefaultCallbackHandler;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.utils.BeanUtils;
@@ -68,6 +69,7 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
     private static final Log log = Log.getLog(PostgreDataSource.class);
 
     private DatabaseCache databaseCache;
+    private SettingCache settingCache;
     private String activeDatabaseName;
     private PostgreServerExtension serverExtension;
     private String serverVersion;
@@ -95,7 +97,7 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
             this,
             activeDatabaseName);
         databaseCache.setCache(Collections.singletonList(defDatabase));
-
+        settingCache = new SettingCache();
     }
 
     @Override
@@ -119,12 +121,12 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
             activeDatabaseName = PostgreConstants.DEFAULT_DATABASE;
         }
         databaseCache = new DatabaseCache();
-
+        settingCache = new SettingCache();
         DBPConnectionConfiguration configuration = getContainer().getActualConnectionConfiguration();
-        final boolean showNDD = CommonUtils.getBoolean(configuration.getProviderProperty(PostgreConstants.PROP_SHOW_NON_DEFAULT_DB), false);
+        final boolean showNDD = isReadDatabaseList(configuration);
         List<PostgreDatabase> dbList = new ArrayList<>();
         if (!showNDD) {
-            PostgreDatabase defDatabase = new PostgreDatabase(monitor, this, activeDatabaseName);
+            PostgreDatabase defDatabase = createDatabaseImpl(monitor, activeDatabaseName);
             dbList.add(defDatabase);
         } else {
             loadAvailableDatabases(monitor, configuration, dbList);
@@ -132,36 +134,25 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         databaseCache.setCache(dbList);
         // Initiate default context
         getDefaultInstance().checkInstanceConnection(monitor, false);
+        try {
+            // Preload some settings, if available
+            settingCache.getObject(monitor, this, PostgreConstants.OPTION_STANDARD_CONFORMING_STRINGS);
+        } catch (DBException e) {
+            // ignore
+        }
     }
 
     private void loadAvailableDatabases(@NotNull DBRProgressMonitor monitor, DBPConnectionConfiguration configuration, List<PostgreDatabase> dbList) throws DBException {
-        // Make initial connection to read database list
-        final boolean showTemplates = CommonUtils.toBoolean(configuration.getProviderProperty(PostgreConstants.PROP_SHOW_TEMPLATES_DB));
-        final boolean showUnavailable = CommonUtils.toBoolean(configuration.getProviderProperty(PostgreConstants.PROP_SHOW_UNAVAILABLE_DB));
-        StringBuilder catalogQuery = new StringBuilder("SELECT db.oid,db.* FROM pg_catalog.pg_database db WHERE 1 = 1");
-        if (!showUnavailable) {
-            catalogQuery.append(" AND datallowconn");
-        }
-        if (!showTemplates) {
-            catalogQuery.append(" AND NOT datistemplate ");
-        }
-        DBSObjectFilter catalogFilters = getContainer().getObjectFilter(PostgreDatabase.class, null, false);
-        if (catalogFilters != null) {
-            JDBCUtils.appendFilterClause(catalogQuery, catalogFilters, "datname", false);
-        }
-        catalogQuery.append("\nORDER BY db.datname");
         DBExecUtils.startContextInitiation(getContainer());
         try (Connection bootstrapConnection = openConnection(monitor, null, "Read PostgreSQL database list")) {
             // Read server version info here - it is needed during database metadata fetch (#8061)
             getDataSource().readDatabaseServerVersion(bootstrapConnection.getMetaData());
+
             // Get all databases
-            try (PreparedStatement dbStat = bootstrapConnection.prepareStatement(catalogQuery.toString())) {
-                if (catalogFilters != null) {
-                    JDBCUtils.setFilterParameters(dbStat, 1, catalogFilters);
-                }
+            try (PreparedStatement dbStat = prepareReadDatabaseListStatement(monitor, bootstrapConnection, configuration)) {
                 try (ResultSet dbResult = dbStat.executeQuery()) {
                     while (dbResult.next()) {
-                        PostgreDatabase database = new PostgreDatabase(monitor, this, dbResult);
+                        PostgreDatabase database = createDatabaseImpl(monitor, dbResult);
                         dbList.add(database);
                     }
                 }
@@ -182,7 +173,62 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         }
     }
 
-    @Override
+    // True if we need multiple databases
+    protected boolean isReadDatabaseList(DBPConnectionConfiguration configuration) {
+        // It is configurable by default
+        return CommonUtils.getBoolean(configuration.getProviderProperty(PostgreConstants.PROP_SHOW_NON_DEFAULT_DB), false);
+    }
+
+    protected PreparedStatement prepareReadDatabaseListStatement(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull Connection bootstrapConnection,
+        @NotNull DBPConnectionConfiguration configuration) throws SQLException
+    {
+        // Make initial connection to read database list
+        DBSObjectFilter catalogFilters = getContainer().getObjectFilter(PostgreDatabase.class, null, false);
+        StringBuilder catalogQuery = new StringBuilder("SELECT db.oid,db.* FROM pg_catalog.pg_database db WHERE 1 = 1");
+        {
+            final boolean showTemplates = CommonUtils.toBoolean(configuration.getProviderProperty(PostgreConstants.PROP_SHOW_TEMPLATES_DB));
+            final boolean showUnavailable = CommonUtils.toBoolean(configuration.getProviderProperty(PostgreConstants.PROP_SHOW_UNAVAILABLE_DB));
+
+            if (!showUnavailable) {
+                catalogQuery.append(" AND datallowconn");
+            }
+            if (!showTemplates) {
+                catalogQuery.append(" AND NOT datistemplate ");
+            }
+            if (catalogFilters != null) {
+                JDBCUtils.appendFilterClause(catalogQuery, catalogFilters, "datname", false);
+            }
+            catalogQuery.append("\nORDER BY db.datname");
+        }
+
+        // Get all databases
+        PreparedStatement dbStat = bootstrapConnection.prepareStatement(catalogQuery.toString());
+
+        if (catalogFilters != null) {
+            JDBCUtils.setFilterParameters(dbStat, 1, catalogFilters);
+        }
+
+        return dbStat;
+    }
+
+    @NotNull
+    public PostgreDatabase createDatabaseImpl(@NotNull DBRProgressMonitor monitor, ResultSet dbResult) throws DBException {
+        return new PostgreDatabase(monitor, this, dbResult);
+    }
+
+    @NotNull
+    public PostgreDatabase createDatabaseImpl(@NotNull DBRProgressMonitor monitor, String name) throws DBException {
+        return new PostgreDatabase(monitor, this, name);
+    }
+
+    @NotNull
+    public PostgreDatabase createDatabaseImpl(DBRProgressMonitor monitor, String name, PostgreRole owner, String templateName, PostgreTablespace tablespace, PostgreCharset encoding) throws DBException {
+        return new PostgreDatabase(monitor, this, name, owner, templateName, tablespace, encoding);
+    }
+
+        @Override
     protected Map<String, String> getInternalConnectionProperties(DBRProgressMonitor monitor, DBPDriver driver, JDBCExecutionContext context, String purpose, DBPConnectionConfiguration connectionInfo) throws DBCException
     {
         Map<String, String> props = new LinkedHashMap<>(PostgreDataSourceProvider.getConnectionsProps());
@@ -200,6 +246,12 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
             }
         } else {
             getServerType().initDefaultSSLConfig(connectionInfo, props);
+        }
+        PostgreServerType serverType = PostgreUtils.getServerType(getContainer().getDriver());
+        if (serverType != null && serverType.turnOffPreparedStatements()
+            && !CommonUtils.toBoolean(getContainer().getActualConnectionConfiguration().getProviderProperty(PostgreConstants.PROP_USE_PREPARED_STATEMENTS))) {
+            // Turn off prepared statements using, to avoid error: "ERROR: prepared statement "S_1" already exists" from PGBouncer #10742
+            props.put("prepareThreshold", "0");
         }
         return props;
     }
@@ -278,6 +330,18 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
     public PostgreDatabase getDatabase(String name)
     {
         return databaseCache.getCachedObject(name);
+    }
+
+    public SettingCache getSettingCache() {
+        return settingCache;
+    }
+
+    public Collection<PostgreSetting> getSettings() {
+        return settingCache.getCachedObjects();
+    }
+
+    public PostgreSetting getSetting(String name) {
+        return settingCache.getCachedObject(name);
     }
 
     @Override
@@ -568,48 +632,29 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         }
     }
 
-    class DatabaseCache extends JDBCObjectLookupCache<PostgreDataSource, PostgreDatabase>
-    {
-        @Override
-        protected PostgreDatabase fetchObject(@NotNull JDBCSession session, @NotNull PostgreDataSource owner, @NotNull JDBCResultSet resultSet) throws SQLException, DBException
-        {
-            return new PostgreDatabase(session.getProgressMonitor(), owner, resultSet);
-        }
+    static class DatabaseCache extends SimpleObjectCache<PostgreDataSource, PostgreDatabase> {
+    }
 
+    static class SettingCache extends JDBCObjectLookupCache<PostgreDataSource, PostgreSetting> {
         @NotNull
         @Override
-        public JDBCStatement prepareLookupStatement(JDBCSession session, PostgreDataSource owner, PostgreDatabase object, String objectName) throws SQLException {
-            final boolean showNDD = CommonUtils.toBoolean(getContainer().getActualConnectionConfiguration().getProviderProperty(PostgreConstants.PROP_SHOW_NON_DEFAULT_DB));
-            final boolean showTemplates = CommonUtils.toBoolean(getContainer().getActualConnectionConfiguration().getProviderProperty(PostgreConstants.PROP_SHOW_TEMPLATES_DB));
-            StringBuilder catalogQuery = new StringBuilder(
-                "SELECT db.oid,db.*" +
-                    "\nFROM pg_catalog.pg_database db WHERE datallowconn ");
-            if (object == null && !showTemplates) {
-                catalogQuery.append(" AND NOT datistemplate ");
+        public JDBCStatement prepareLookupStatement(@NotNull JDBCSession session, @NotNull PostgreDataSource owner, @Nullable PostgreSetting object, @Nullable String objectName) throws SQLException {
+            if (object != null || objectName != null) {
+                final JDBCPreparedStatement dbStat = session.prepareStatement("select * from pg_catalog.pg_settings where name=?");
+                dbStat.setString(1, object != null ? object.getName() : objectName);
+                return dbStat;
             }
-            if (object != null) {
-                catalogQuery.append("\nAND db.oid=?");
-            } else if (objectName != null || !showNDD) {
-                catalogQuery.append("\nAND db.datname=?");
-            }
-            DBSObjectFilter catalogFilters = owner.getContainer().getObjectFilter(PostgreDatabase.class, null, false);
-            if (object == null && showNDD) {
-                if (catalogFilters != null) {
-                    JDBCUtils.appendFilterClause(catalogQuery, catalogFilters, "datname", false);
-                }
-                catalogQuery.append("\nORDER BY db.datname");
-            }
-            JDBCPreparedStatement dbStat = session.prepareStatement(catalogQuery.toString());
-            if (object != null) {
-                dbStat.setLong(1, object.getObjectId());
-            } else if (objectName != null || !showNDD) {
-                dbStat.setString(1, (objectName != null ? objectName : activeDatabaseName));
-            } else if (catalogFilters != null) {
-                JDBCUtils.setFilterParameters(dbStat, 1, catalogFilters);
-            }
-            return dbStat;
+
+            return session.prepareStatement("select * from pg_catalog.pg_settings");
+        }
+
+        @Nullable
+        @Override
+        protected PostgreSetting fetchObject(@NotNull JDBCSession session, @NotNull PostgreDataSource owner, @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new PostgreSetting(owner, dbResult);
         }
     }
+
 
     private final Pattern ERROR_POSITION_PATTERN = Pattern.compile("\\n\\s*\\p{L}+\\s*: ([0-9]+)");
 
@@ -624,7 +669,7 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
                     Object position = BeanUtils.readObjectProperty(serverErrorMessage, "position");
                     if (position instanceof Number) {
                         ErrorPosition pos = new ErrorPosition();
-                        pos.position = ((Number) position).intValue();
+                        pos.position = ((Number) position).intValue() - 1;
                         return new ErrorPosition[] {pos};
                     }
                 }
@@ -685,5 +730,9 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
             return new QueryTransformerFetchAll();
         }
         return null;
+    }
+
+    public boolean supportReadingAllDataTypes() {
+        return CommonUtils.toBoolean(getContainer().getActualConnectionConfiguration().getProviderProperty(PostgreConstants.PROP_READ_ALL_DATA_TYPES));
     }
 }

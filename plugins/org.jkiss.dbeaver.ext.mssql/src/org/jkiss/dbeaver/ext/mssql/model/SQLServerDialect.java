@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import org.jkiss.dbeaver.ext.mssql.SQLServerUtils;
 import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
+import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCSQLDialect;
 import org.jkiss.dbeaver.model.sql.SQLConstants;
@@ -95,8 +96,8 @@ public class SQLServerDialect extends JDBCSQLDialect {
         super("SQLServer", "sqlserver");
     }
 
-    public void initDriverSettings(JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
-        super.initDriverSettings(dataSource, metaData);
+    public void initDriverSettings(JDBCSession session, JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
+        super.initDriverSettings(session, dataSource, metaData);
         super.addSQLKeywords(Arrays.asList(SQLSERVER_EXTRA_KEYWORDS));
         this.dataSource = dataSource;
         this.isSqlServer = SQLServerUtils.isDriverSqlServer(dataSource.getContainer().getDriver());

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 
 package org.jkiss.dbeaver.utils;
 
-import org.eclipse.core.internal.runtime.AdapterManager;
 import org.eclipse.core.runtime.*;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ModelPreferences;
 import org.jkiss.dbeaver.bundle.ModelActivator;
@@ -56,10 +56,6 @@ import java.util.regex.Pattern;
 public class GeneralUtils {
     private static final Log log = Log.getLog(GeneralUtils.class);
 
-    private static final boolean IS_MACOS = Platform.getOS().contains("macos");
-    private static final boolean IS_WINDOWS = Platform.getOS().contains("win32");
-    private static final boolean IS_LINUX = Platform.getOS().contains("linux");
-
     public static final String UTF8_ENCODING = StandardCharsets.UTF_8.name();
     public static final String DEFAULT_ENCODING = UTF8_ENCODING;
 
@@ -74,7 +70,6 @@ public class GeneralUtils {
 
     public static final String[] byteToHex = new String[256];
     public static final char[] nibbleToHex = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    static final Map<String, byte[]> BOM_MAP = new HashMap<>();
     private static final char[] HEX_CHAR_TABLE = {
         '0', '1', '2', '3',
         '4', '5', '6', '7',
@@ -115,10 +110,6 @@ public class GeneralUtils {
 
     public static String getDefaultLineSeparator() {
         return System.getProperty(StandardConstants.ENV_LINE_SEPARATOR, "\n");
-    }
-
-    public static byte[] getCharsetBOM(String charsetName) {
-        return BOM_MAP.get(charsetName.toUpperCase());
     }
 
     public static void writeByteAsHex(Writer out, byte b) throws IOException {
@@ -240,7 +231,7 @@ public class GeneralUtils {
                 return value;
             }
         } catch (RuntimeException e) {
-            log.error(e);
+            log.error("Error converting value", e);
             return value;
         }
     }
@@ -378,6 +369,34 @@ public class GeneralUtils {
         calendar.set(Calendar.MONTH, 0);
         calendar.set(Calendar.DAY_OF_MONTH, 1);
         return calendar.getTime();
+    }
+
+    @Nullable
+    public static Date getProductBuildTime() {
+        Bundle definingBundle = null;
+        ApplicationDescriptor application = ApplicationRegistry.getInstance().getApplication();
+        if (application != null) {
+            definingBundle = application.getContributorBundle();
+        } else {
+            final IProduct product = Platform.getProduct();
+            if (product != null) {
+                definingBundle = product.getDefiningBundle();
+            }
+        }
+        if (definingBundle == null) {
+            return null;
+        }
+
+        final Dictionary<String, String> headers = definingBundle.getHeaders();
+        final String buildTime = headers.get("Build-Time");
+        if (buildTime != null) {
+            try {
+                return new SimpleDateFormat(DEFAULT_TIMESTAMP_PATTERN).parse(buildTime);
+            } catch (ParseException e) {
+                log.debug(e);
+            }
+        }
+        return null;
     }
 
     public static String getExpressionParseMessage(Exception e) {
@@ -663,18 +682,6 @@ public class GeneralUtils {
         return new URI(path.replace(" ", "%20"));
     }
 
-    public static boolean isWindows() {
-        return IS_WINDOWS;
-    }
-
-    public static boolean isMacOS() {
-        return IS_MACOS;
-    }
-
-    public static boolean isLinux() {
-        return IS_LINUX;
-    }
-
     /////////////////////////////////////////////////////////////////////////
     // Adapters
     // Copy-pasted from org.eclipse.core.runtime.Adapters to support Eclipse Mars (#46667)
@@ -729,9 +736,9 @@ public class GeneralUtils {
     public static Object queryAdapterManager(Object sourceObject, String adapterId, boolean allowActivation) {
         Object result;
         if (allowActivation) {
-            result = AdapterManager.getDefault().loadAdapter(sourceObject, adapterId);
+            result = Platform.getAdapterManager().loadAdapter(sourceObject, adapterId);
         } else {
-            result = AdapterManager.getDefault().getAdapter(sourceObject, adapterId);
+            result = Platform.getAdapterManager().getAdapter(sourceObject, adapterId);
         }
         return result;
     }

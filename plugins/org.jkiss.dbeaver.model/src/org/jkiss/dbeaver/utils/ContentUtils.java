@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,17 +55,6 @@ public class ContentUtils {
     private static final String LOB_DIR = ".lob"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(ContentUtils.class);
-
-    static {
-        GeneralUtils.BOM_MAP.put(GeneralUtils.DEFAULT_ENCODING, new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF} );
-        GeneralUtils.BOM_MAP.put("UTF-16", new byte[] {(byte) 0xFE, (byte) 0xFF} );
-        GeneralUtils.BOM_MAP.put("UTF-16BE", new byte[] {(byte) 0xFE, (byte) 0xFF} );
-        GeneralUtils.BOM_MAP.put("UTF-16LE", new byte[] {(byte) 0xFF, (byte) 0xFE} );
-        GeneralUtils.BOM_MAP.put("UTF-32", new byte[] { 0x0, 0x0, (byte) 0xFE, (byte) 0xFF} );
-        GeneralUtils.BOM_MAP.put("UTF-32BE", new byte[] { 0x0, 0x0, (byte) 0xFE, (byte) 0xFF} );
-        GeneralUtils.BOM_MAP.put("UTF-32LE", new byte[] { (byte) 0xFE, (byte) 0xFF, 0x0, 0x0} );
-    }
-
 
     public static File getLobFolder(DBRProgressMonitor monitor, DBPPlatform application)
         throws IOException
@@ -432,7 +421,7 @@ public class ContentUtils {
         return object.toString();
     }
 
-    @NotNull
+    @Nullable
     public static byte[] getContentBinaryValue(@NotNull DBRProgressMonitor monitor, @NotNull DBDContent object) throws DBCException {
         DBDContentStorage data = object.getContents(monitor);
         if (data != null) {

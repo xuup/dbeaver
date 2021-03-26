@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -154,7 +154,8 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
                 // Commit transaction. We can perform init SQL which potentially may lock some resources
                 // Let's free them.
                 if (!this.autoCommit) {
-                    try (JDBCSession session = openSession(monitor, DBCExecutionPurpose.META, "End transaction")) {
+                    try (JDBCSession session = openSession(monitor, DBCExecutionPurpose.META, "Start transaction")) {
+                        session.enableLogging(false); // Disable logging to avoid smart commit recovery activation
                         session.commit();
                     }
                 }
@@ -245,12 +246,14 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     }
 
     private void closeContext(boolean removeContext) {
-        disconnect();
-
+        // We remove context before it is actually closed.
+        // Because disconnect may (potentially) hang in socket forever
         if (removeContext) {
             // Remove self from context list
             this.instance.removeContext(this);
         }
+
+        disconnect();
     }
 
     //////////////////////////////////////////////////////////////

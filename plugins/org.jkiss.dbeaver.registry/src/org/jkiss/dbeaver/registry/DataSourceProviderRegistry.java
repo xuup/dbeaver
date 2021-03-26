@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -482,6 +482,7 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
                 xml.addAttribute(RegistryConstants.ATTR_AUTOCOMMIT, connectionType.isAutocommit());
                 xml.addAttribute(RegistryConstants.ATTR_CONFIRM_EXECUTE, connectionType.isConfirmExecute());
                 xml.addAttribute(RegistryConstants.ATTR_CONFIRM_DATA_CHANGE, connectionType.isConfirmDataChange());
+                xml.addAttribute(RegistryConstants.ATTR_AUTO_CLOSE_TRANSACTIONS, connectionType.isAutoCloseTransactions());
                 List<DBPDataSourcePermission> modifyPermission = connectionType.getModifyPermission();
                 if (modifyPermission != null) {
                     xml.addAttribute("modifyPermission",
@@ -526,7 +527,7 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
         return authModels.get(id);
     }
 
-    public List<DBPAuthModelDescriptor> getAllAuthModels() {
+    public List<DataSourceAuthModelDescriptor> getAllAuthModels() {
         return new ArrayList<>(authModels.values());
     }
 
@@ -596,14 +597,23 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
             throws XMLException
         {
             if (localName.equals(RegistryConstants.TAG_TYPE)) {
+                String typeId = atts.getValue(RegistryConstants.ATTR_ID);
+                DBPConnectionType origType = null;
+                for (DBPConnectionType ct : DBPConnectionType.SYSTEM_TYPES) {
+                    if (ct.getId().equals(typeId)) {
+                        origType = ct;
+                        break;
+                    }
+                }
                 DBPConnectionType connectionType = new DBPConnectionType(
-                    atts.getValue(RegistryConstants.ATTR_ID),
+                    typeId,
                     atts.getValue(RegistryConstants.ATTR_NAME),
                     atts.getValue(RegistryConstants.ATTR_COLOR),
                     atts.getValue(RegistryConstants.ATTR_DESCRIPTION),
-                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_AUTOCOMMIT)),
-                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_CONFIRM_EXECUTE)),
-                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_CONFIRM_DATA_CHANGE)));
+                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_AUTOCOMMIT), origType != null && origType.isAutocommit()),
+                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_CONFIRM_EXECUTE), origType != null && origType.isConfirmExecute()),
+                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_CONFIRM_DATA_CHANGE), origType != null && origType.isConfirmDataChange()),
+                    CommonUtils.getBoolean(atts.getValue(RegistryConstants.ATTR_AUTO_CLOSE_TRANSACTIONS), origType != null && origType.isAutoCloseTransactions()));
                 String modifyPermissionList = atts.getValue("modifyPermission");
                 if (!CommonUtils.isEmpty(modifyPermissionList)) {
                     List<DBPDataSourcePermission> permList = new ArrayList<>();

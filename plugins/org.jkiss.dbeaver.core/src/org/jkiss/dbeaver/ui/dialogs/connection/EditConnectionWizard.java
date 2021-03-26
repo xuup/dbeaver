@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import org.jkiss.dbeaver.registry.DataSourceViewDescriptor;
 import org.jkiss.dbeaver.registry.DataSourceViewRegistry;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.ICompositeDialogPage;
+import org.jkiss.dbeaver.ui.IDialogPageProvider;
 import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.actions.datasource.DataSourceHandler;
 import org.jkiss.dbeaver.ui.dialogs.BaseAuthDialog;
@@ -152,7 +152,7 @@ public class EditConnectionWizard extends ConnectionWizard
         }
 
         if (!embedded && pageSettings != null) {
-            PrefPageConnections pageClientSettings = new PrefPageConnections();
+            PrefPageConnectionClient pageClientSettings = new PrefPageConnectionClient();
             pageSettings.addSubPage(
                 createPreferencePage(pageClientSettings, CoreMessages.dialog_connection_edit_wizard_connections, CoreMessages.dialog_connection_edit_wizard_connections_description));
         }
@@ -185,8 +185,8 @@ public class EditConnectionWizard extends ConnectionWizard
             if (pageName.equals(name)) {
                 return page;
             }
-            if (page instanceof ICompositeDialogPage) {
-                final IDialogPage[] subPages = ((ICompositeDialogPage) page).getSubPages(false, true);
+            if (page instanceof IDialogPageProvider) {
+                final IDialogPage[] subPages = ((IDialogPageProvider) page).getDialogPages(false, true);
                 if (subPages != null) {
                     for (IDialogPage subPage : subPages) {
                         if (subPage instanceof IWizardPage && ((IWizardPage) subPage).getName().equals(name)) {
@@ -315,7 +315,7 @@ public class EditConnectionWizard extends ConnectionWizard
             prefPage.performFinish();
         }
 /*
-        final WizardPrefPage[] subPages = prefPage.getSubPages();
+        final WizardPrefPage[] subPages = prefPage.getDialogPages();
         if (subPages != null) {
             for (WizardPrefPage subPage : subPages) {
                 if (isPageActive(subPage)) {

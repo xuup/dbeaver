@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  * Copyright (C) 2011-2012 Eugene Fradkin (eugene.fradkin@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,6 +105,10 @@ public class DTMessages extends NLS {
 	public static String data_transfer_db_consumer_column_mappings;
 	public static String data_transfer_db_consumer_column_mappings_description;
 	public static String data_transfer_db_consumer_ddl;
+	public static String data_transfer_db_consumer_up_label;
+	public static String data_transfer_db_consumer_up_tooltip;
+	public static String data_transfer_db_consumer_down_label;
+	public static String data_transfer_db_consumer_down_tooltip;
 
 	public static String sql_script_task_title;
 	public static String sql_script_task_page_settings_title;
@@ -120,6 +124,7 @@ public class DTMessages extends NLS {
 	public static String database_consumer_settings_option_disable_batches;
 	public static String database_consumer_settings_option_on_duplicate_key_method_label;
 	public static String database_consumer_settings_option_transfer_auto_generated_columns;
+	public static String database_consumer_settings_option_disable_referential_integrity;
 	public static String database_consumer_settings_option_truncate_before_load;
 
 	public static String data_transfer_settings_title_find_producer;
@@ -131,10 +136,18 @@ public class DTMessages extends NLS {
 	public static String database_mapping_container_title_attributes_read_failed;
 	public static String database_mapping_container_message_get_attributes_from;
 	public static String database_transfer_consumer_task_error_occurred_during_data_load;
+	public static String database_transfer_consumer_task_error_occurred_during_batch_insert;
 	public static String stream_transfer_consumer_title_run_process;
 	public static String stream_transfer_consumer_message_error_running_process;
+	public static String stream_transfer_consumer_title_attributes_read_failed;
+	public static String stream_transfer_consumer_message_cannot_get_attributes_from;
+	public static String stream_transfer_consumer_title_configuration_load_failed;
+	public static String stream_transfer_consumer_message_cannot_load_configuration;
 
-
+	public static String data_transfer_task_handler_unexpected_error_title;
+	public static String data_transfer_task_handler_unexpected_error_message;
+	public static String data_transfer_task_handler_resoring_referential_integrity_unexpected_error_title;
+	public static String data_transfer_task_handler_resoring_referential_integrity_unexpected_error_message;
 
 	static {
 		// initialize resource bundle

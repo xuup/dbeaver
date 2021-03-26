@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTable;
 import org.jkiss.dbeaver.model.meta.Association;
 import org.jkiss.dbeaver.model.meta.Property;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.SubTaskProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.dbeaver.model.struct.*;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureContainer;
@@ -457,9 +458,7 @@ public class PostgreSchema implements
     public Collection<PostgreDataType> getDataTypes(DBRProgressMonitor monitor) throws DBException {
         List<PostgreDataType> types = new ArrayList<>();
         for (PostgreDataType dt : dataTypeCache.getAllObjects(monitor, this)) {
-            if (dt.getParentObject() == this) {
-                types.add(dt);
-            }
+            types.add(dt);
         }
         DBUtils.orderObjects(types);
         return types;
@@ -507,7 +506,12 @@ public class PostgreSchema implements
 */
             Collection<PostgreDataType> dataTypes = getDataTypes(monitor);
             monitor.beginTask("Load data types", dataTypes.size());
+            boolean readAllTypes = getDatabase().getDataSource().supportReadingAllDataTypes();
             for (PostgreDataType dataType : dataTypes) {
+                if (!readAllTypes && (dataType.hasAttributes() || dataType.isArray())) {
+                    // Skipp table types and arrays
+                    continue;
+                }
                 addDDLLine(sql, dataType.getObjectDefinitionText(monitor, options));
                 if (monitor.isCanceled()) {
                     break;
@@ -528,7 +532,7 @@ public class PostgreSchema implements
                         allTables.add(tableOrView);
                     }
                 }
-                DBStructUtils.generateTableListDDL(monitor, sql, allTables, options, false);
+                DBStructUtils.generateTableListDDL(new SubTaskProgressMonitor(monitor), sql, allTables, options, false);
                 monitor.done();
             }
             if (!monitor.isCanceled()) {

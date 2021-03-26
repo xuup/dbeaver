@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ import org.jkiss.dbeaver.ui.internal.registry.NavigatorExtensionsRegistry;
 import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
 import org.jkiss.dbeaver.ui.navigator.INavigatorNodeActionHandler;
 import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import org.jkiss.dbeaver.utils.RuntimeUtils;
 import org.jkiss.utils.ByteNumberFormat;
 import org.jkiss.utils.CommonUtils;
 
@@ -64,7 +64,6 @@ import java.util.Map;
  * Draws item statistics in the right part.
  */
 public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRenderer {
-
     private static final Log log = Log.getLog(StatisticsNavigatorNodeRenderer.class);
     private static final int PERCENT_FILL_WIDTH = 50;
     //public static final String ITEM_WIDTH_ATTR = "item.width";
@@ -85,12 +84,9 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
     private static final Map<DBSObject, StatReadJob> statReaders = new IdentityHashMap<>();
 
     private Font fontItalic;
-    private boolean isLinux, isMac;
 
     public StatisticsNavigatorNodeRenderer(INavigatorModelView view) {
         this.view = view;
-        this.isMac = GeneralUtils.isMacOS();
-        this.isLinux = !GeneralUtils.isWindows() && !isMac;
     }
 
     public INavigatorModelView getView() {
@@ -108,9 +104,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
     public void paintNodeDetails(DBNNode node, Tree tree, GC gc, Event event) {
         super.paintNodeDetails(node, tree, gc, event);
 
-        ScrollBar hSB = tree.getHorizontalBar();
-        boolean scrollEnabled = (hSB != null && hSB.isVisible());
-
+        boolean scrollEnabled = isHorizontalScrollbarEnabled(tree);
         Object element = event.item.getData();
 
         if (element instanceof DBNDatabaseNode) {
@@ -149,6 +143,26 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
                 overActionButton.handleNodeAction(view, node, event, defaultAction);
             }
         }
+    }
+
+    @Override
+    public void handleHover(DBNNode node, Tree tree, TreeItem item, Event event) {
+        super.handleHover(node, tree, item, event);
+
+        boolean scrollEnabled = isHorizontalScrollbarEnabled(tree);
+        Object element = item.getData();
+
+        if (element instanceof DBNDatabaseNode) {
+            if (element instanceof DBNDataSource) {
+                if (!scrollEnabled && DBWorkbench.getPlatform().getPreferenceStore().getBoolean(NavigatorPreferences.NAVIGATOR_SHOW_NODE_ACTIONS)) {
+                    if (isOverActionButton((DBNDatabaseNode) element, tree, item, event.gc, event)) {
+                        tree.setCursor(tree.getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+                        return;
+                    }
+                }
+            }
+        }
+        tree.setCursor(null);
     }
 
     private String getDetailsTipText(DBNNode element, Tree tree, Event event) {
@@ -192,8 +206,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
 
     private INavigatorNodeActionHandler getActionButtonFor(DBNNode element, Tree tree, Event event) {
         List<INavigatorNodeActionHandler> nodeActions = NavigatorExtensionsRegistry.getInstance().getNodeActions(getView(), element);
-        ScrollBar horizontalScrollBar = tree.getHorizontalBar();
-        if (horizontalScrollBar != null && horizontalScrollBar.isVisible()) {
+        if (isHorizontalScrollbarEnabled(tree)) {
             return null;
         }
         int widthOccupied = 0;
@@ -245,7 +258,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
             gc.setFont(hostNameFont);
             Point hostTextSize = gc.stringExtent(hostText);
 
-            int xOffset = isLinux ? 16 : 2;
+            int xOffset = RuntimeUtils.isLinux() ? 16 : 2;
             ScrollBar hSB = tree.getHorizontalBar();
             boolean scrollEnabled = (hSB != null && hSB.isVisible());
 
@@ -326,6 +339,29 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
         }
         //System.out.println(nodeActions);
         return widthOccupied;
+    }
+
+    private boolean isOverActionButton(DBNDatabaseNode element, Tree tree, TreeItem item, GC gc, Event event) {
+        List<INavigatorNodeActionHandler> nodeActions = NavigatorExtensionsRegistry.getInstance().getNodeActions(getView(), element);
+        int xPos = getTreeWidth(tree);
+        for (INavigatorNodeActionHandler nah : nodeActions) {
+            if (!nah.isSticky(view, element)) {
+                continue;
+            }
+            DBPImage icon = nah.getNodeActionIcon(getView(), element);
+            if (icon != null) {
+                Image image = DBeaverIcons.getImage(icon);
+
+                Rectangle imageBounds = image.getBounds();
+                int imageSize = imageBounds.width;
+                // event.height * 2 / 3;
+                xPos -= imageSize;
+                if (event.x >= xPos && event.x < xPos + imageSize) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -433,9 +469,11 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
 
     private long getMaxObjectSize(TreeItem item) {
         TreeItem parentItem = item.getParentItem();
-        Object maxSize = parentItem.getData(DatabaseNavigatorTree.TREE_DATA_STAT_MAX_SIZE);
-        if (maxSize instanceof Number) {
-            return ((Number) maxSize).longValue();
+        if (parentItem != null) {
+            Object maxSize = parentItem.getData(DatabaseNavigatorTree.TREE_DATA_STAT_MAX_SIZE);
+            if (maxSize instanceof Number) {
+                return ((Number) maxSize).longValue();
+            }
         }
         return -1;
     }
@@ -495,7 +533,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
                 long finalMaxStatSize = maxStatSize;
                 UIUtils.asyncExec(() -> {
                     try {
-                        if (!treeItem.isDisposed()) {
+                        if (treeItem != null && !treeItem.isDisposed()) {
                             Object prevValue = treeItem.getData(DatabaseNavigatorTree.TREE_DATA_STAT_MAX_SIZE);
                             /*if (!CommonUtils.equalObjects(finalMaxStatSize, prevValue)) */{
                                 treeItem.setData(DatabaseNavigatorTree.TREE_DATA_STAT_MAX_SIZE, finalMaxStatSize);
@@ -535,4 +573,14 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
         return treeWidth - xShift;
     }
 
+    private static boolean isHorizontalScrollbarEnabled(Tree tree) {
+        ScrollBar horizontalBar = tree.getHorizontalBar();
+        if (horizontalBar == null) {
+            return false;
+        }
+        if (RuntimeUtils.isLinux()) {
+            return tree.getClientArea().width != horizontalBar.getMaximum();
+        }
+        return horizontalBar.isVisible();
+    }
 }

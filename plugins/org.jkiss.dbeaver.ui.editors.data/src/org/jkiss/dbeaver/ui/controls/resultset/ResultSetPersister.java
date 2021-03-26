@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,6 +137,10 @@ class ResultSetPersister {
             attrs.addAll(row.changes.keySet());
         }
         return new ArrayList<>(attrs);
+    }
+
+    private static boolean isVirtualColumn(DBDAttributeBinding column) {
+        return column instanceof DBDAttributeBindingCustom;
     }
 
     /**
@@ -369,7 +373,9 @@ class ResultSetPersister {
             } else {
                 for (int i = 0; i < columns.length; i++) {
                     DBDAttributeBinding column = columns[i];
-                    statement.keyAttributes.add(new DBDAttributeValue(column, model.getCellValue(column, row)));
+                    if (!isVirtualColumn(column)) {
+                        statement.keyAttributes.add(new DBDAttributeValue(column, model.getCellValue(column, row)));
+                    }
                 }
             }
             insertStatements.add(statement);
@@ -398,10 +404,12 @@ class ResultSetPersister {
                 DataStatementInfo statement = new DataStatementInfo(DBSManipulationType.UPDATE, row, table);
                 // Updated columns
                 for (DBDAttributeBinding changedAttr : row.changes.keySet()) {
-                    statement.updateAttributes.add(
-                        new DBDAttributeValue(
-                            changedAttr,
-                            model.getCellValue(changedAttr, row)));
+                    if (!isVirtualColumn(changedAttr)) {
+                        statement.updateAttributes.add(
+                            new DBDAttributeValue(
+                                changedAttr,
+                                model.getCellValue(changedAttr, row)));
+                    }
                 }
                 if (rowIdentifier != null) {
                     // Key columns

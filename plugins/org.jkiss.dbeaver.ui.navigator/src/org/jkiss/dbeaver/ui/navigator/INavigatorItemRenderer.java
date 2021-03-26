@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package org.jkiss.dbeaver.ui.navigator;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeItem;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 
 /**
@@ -34,4 +35,6 @@ public interface INavigatorItemRenderer {
     void showDetailsToolTip(DBNNode node, Tree tree, Event event);
 
     void performAction(DBNNode node, Tree tree, Event event, boolean defaultAction);
+
+    void handleHover(DBNNode node, Tree tree, TreeItem item, Event event);
 }

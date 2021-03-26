@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  * Copyright (C) 2011-2012 Eugene Fradkin (eugene.fradkin@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +42,9 @@ public class DTUIMessages extends NLS {
 	public static String database_consumer_wizard_transfer_checkbox_tooltip;
 	public static String database_consumer_wizard_truncate_checkbox_label;
 	public static String database_consumer_wizard_truncate_checkbox_description;
+	public static String database_consumer_wizard_disable_referential_integrity_label;
+	public static String database_consumer_wizard_disable_referential_integrity_tip_no_caveats;
+	public static String database_consumer_wizard_disable_referential_integrity_tip_with_caveats;
 	public static String database_consumer_wizard_performance_group_label;
 	public static String database_consumer_wizard_transactions_checkbox_label;
 	public static String database_consumer_wizard_commit_spinner_label;
@@ -106,6 +109,11 @@ public class DTUIMessages extends NLS {
 	public static String stream_consumer_page_settings_description;
 	public static String stream_consumer_page_settings_item_text_none;
 	public static String stream_consumer_page_warning_not_enough_sources_chosen;
+	public static String stream_consumer_page_mapping_title;
+	public static String stream_consumer_page_mapping_button_configure;
+	public static String stream_consumer_page_mapping_name_column_name;
+	public static String stream_consumer_page_mapping_mapping_column_name;
+	public static String stream_consumer_page_mapping_label_error_no_columns_selected_text;
 
 	public static String data_transfer_task_configurator_group_label_export_tables;
 	public static String data_transfer_task_configurator_group_label_import_into;

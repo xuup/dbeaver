@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  * Copyright (C) 2011-2012 Eugene Fradkin (eugene.fradkin@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,6 +59,7 @@ public class UIMessages extends NLS {
     public static String button_clear;
     public static String button_reset_to_defaults;
     public static String button_start;
+    public static String button_skip_all;
 
     public static String controls_locale_selector_group_locale;
     public static String controls_locale_selector_label_country;

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,6 @@ import java.util.List;
  * Tree/table viewer column controller
  */
 public class ViewerColumnController<COLUMN, ELEMENT> {
-
     private static final Log log = Log.getLog(ViewerColumnController.class);
 
     private static final String DATA_KEY = ViewerColumnController.class.getSimpleName();
@@ -83,7 +82,7 @@ public class ViewerColumnController<COLUMN, ELEMENT> {
             menuListener = event -> {
                 Point pt = control.getDisplay().map(null, control, new Point(event.x, event.y));
                 Rectangle clientArea = ((Composite) control).getClientArea();
-                if (RuntimeUtils.isPlatformMacOS()) {
+                if (RuntimeUtils.isMacOS()) {
                     clickOnHeader = pt.y < 0;
                 } else {
                     if (control instanceof Tree) {
@@ -811,5 +810,4 @@ public class ViewerColumnController<COLUMN, ELEMENT> {
             });
         }
     }
-
 }

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -283,6 +283,16 @@ public interface SQLDialect {
     String getTypeCastClause(DBSAttributeBase attribute, String expression);
 
     /**
+     * Quoting functions
+     */
+
+    boolean isQuotedIdentifier(String identifier);
+
+    String getQuotedIdentifier(String identifier, boolean forceCaseSensitive, boolean forceQuotes);
+
+    String getUnquotedIdentifier(String identifier);
+
+    /**
      * Escapes string to make usable inside of SQL queries.
      * Basically it has to escape only ' character which delimits strings.
      * @param string string to escape
@@ -342,11 +352,6 @@ public interface SQLDialect {
     boolean needsDelimiterFor(String firstKeyword, String lastKeyword);
 
     /**
-     * Should we quote column/table/etc names if they conflicts with reserved words?
-     */
-    boolean isQuoteReservedWords();
-
-    /**
      * Reports about broken CRLF. Queries mustn't contain CRLF line feeds, only LF.
      * This actually seems to be Oracle 9 and earlier JDBC driver issue.
      */
@@ -391,6 +396,5 @@ public interface SQLDialect {
     boolean isDisableScriptEscapeProcessing();
 
     boolean supportsAlterTableConstraint();
-
 
 }

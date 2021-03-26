@@ -2,8 +2,7 @@
 <?eclipse version="3.2"?>
 <!--
  * DBeaver - Universal Database Manager
- * Copyright (C) 2017 Andrew Khitrin (ahitrin@gmail.com) 
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +23,14 @@
     <extension-point id="org.jkiss.dbeaver.postgresql.fdw.config" name="PostgreSQL Foreign Data Wrappers Config" schema="schema/org.jkiss.dbeaver.postgresql.fdw.config.exsd"/>
 
     <extension point="org.jkiss.dbeaver.postgresql.serverType">
-        <serverType id="postgresql" name="PostgreSQL" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerPostgreSQL" logo="icons/postgresql_logo.png" customURL="true"/>
+        <serverType id="postgresql" name="PostgreSQL" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerPostgreSQL" logo="icons/postgresql_logo.png" customURL="true" turnOffPreparedStatements="true"/>
         <serverType id="edb" name="EnterpriseDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerEdb" logo="icons/edb_logo.png" customURL="true"/>
         <serverType id="redshift" name="Redshift" class="org.jkiss.dbeaver.ext.postgresql.model.impls.redshift.PostgreServerRedshift" logo="icons/redshift_logo.png" customURL="true"/>
         <serverType id="timescale" name="TimescaleDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerTimescale" logo="icons/timescale_logo.png" customURL="true"/>
         <serverType id="yellowbrick" name="Yellowbrick" class="org.jkiss.dbeaver.ext.postgresql.model.impls.yellowbrick.PostgreServerYellowBrick" logo="icons/yellowbrick_logo.png" customURL="true"/>
         <serverType id="yugabytedb" name="YugabyteDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerYugabyteDB" logo="icons/yugabyte_logo.png" customURL="true"/>
         <serverType id="cockroach" name="CockroachDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerCockroachDB" logo="icons/cockroach_logo.png" customURL="true"/>
+        <serverType id="gcloudpg" name="Google Cloud SQL - PostgreSQL" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerGCloud" logo="icons/google_cloud_sql_logo.png" customURL="true" hostIsCloudInstance="true" needsPort="false"/>
     </extension>
 
     <extension point="org.jkiss.dbeaver.postgresql.fdw.config">
@@ -261,7 +261,10 @@
                         </folder>
                         <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreAvailableExtension" label="%tree.avalextensions.node.name" icon="#extensions" description="%tree.extensions.node.tip" visibleIf="object.dataSource.serverType.supportsExtensions()">
                                 <items label="%tree.avalextension.node.name" path="extension" property="availableExtensions" icon="#extension"/>
-                        </folder>       
+                        </folder>
+                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreSetting" label="%tree.settings.node.name" icon="#settings" description="Settings">
+                            <items label="%tree.setting.node.name" path="setting" property="settings" icon="#setting"/>
+                        </folder>
                     </folder>
 
                 </items>
@@ -443,13 +446,11 @@
                         description="AWS Redshift JDBC driver"
                         webURL="https://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html"
                         propertiesURL="https://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-options.html"
-                        categories="sql,analytic,bigdata">
+                        categories="sql,analytic,bigdata,aws">
                     <replace provider="generic" driver="aws_redshift"/>
                     <replace provider="generic" driver="aws_redshift_42"/>
-<!--                    <file type="jar" path="https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.45.1069/RedshiftJDBC42-no-awssdk-1.2.45.1069.jar" bundle="!drivers.redshift"/>-->
-<!--                    <file type="jar" path="https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.51.1078/RedshiftJDBC42-no-awssdk-1.2.51.1078.jar" bundle="!drivers.redshift"/>-->
-                        <file type="jar" path="https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.51.1078/RedshiftJDBC42-1.2.51.1078.zip" bundle="!drivers.redshift"/>-->
-<!--                    <file type="jar" path="maven:/com.amazon.redshift:redshift-jdbc42:RELEASE" bundle="!drivers.redshift"/>-->
+                    <!-- Drivers after 1.2.45 seems to be broken -->
+                    <file type="jar" path="https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.45.1069/RedshiftJDBC42-no-awssdk-1.2.45.1069.jar" bundle="!drivers.redshift"/>
                     <file type="jar" path="drivers/redshift" bundle="drivers.redshift"/>
 
                     <parameter name="serverType" value="redshift"/>
@@ -478,6 +479,44 @@
                     <property name="loginTimeout" value="20"/>
                     <property name="connectTimeout" value="20"/>
                 </driver>
+
+                <driver
+                        id="postgres-gcloud-jdbc"
+                        label="Google Cloud SQL - PostgreSQL"
+	                    icon="icons/google_cloud_sql_icon.png"
+	                    iconBig="icons/google_cloud_sql_icon_big.png"
+                        class="org.postgresql.Driver"
+                        sampleURL="jdbc:postgresql:///[{database}]?cloudSqlInstance={host}"
+                        useURL="true"
+                        defaultPort="5432"
+                        webURL="https://cloud.google.com/sql"
+                        propertiesURL="https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory#postgresql-1"
+                        description="%driver.gcloudpg.description"
+                        categories="sql,cloud">
+                    <file type="jar" path="maven:/org.postgresql:postgresql:RELEASE[42.2.5]" bundle="!drivers.postgresql"/>
+                    <file type="jar" path="maven:/com.google.cloud.sql:postgres-socket-factory:RELEASE"/>
+
+                    <file type="license" path="drivers/postgresql/LICENSE.txt" bundle="drivers.postgresql"/>
+                    <file type="jar" path="drivers/postgresql" bundle="drivers.postgresql"/>
+                    <parameter name="serverType" value="gcloudpg"/>
+                    <parameter name="hostType" value="instance"/>
+                    <parameter name="needsPort" value="false"/>
+                    <parameter name="defaultHost" value="project:region:instance"/>
+                    <property name="loginTimeout" value="20"/>
+                    <property name="connectTimeout" value="20"/>
+                    <property name="socketFactory" value="com.google.cloud.sql.postgres.SocketFactory"/>
+                </driver>
+
+                <provider-properties drivers="*">
+                    <propertyGroup label="Database list">
+                        <property id="@dbeaver-show-non-default-db@" label="Show all databases" type="boolean" description="Show all databases on server. Otherwise show current database only."/>
+                        <property id="@dbeaver-show-template-db@" label="Show template databases" type="boolean" description="Show template databases."/>
+                        <property id="@dbeaver-show-unavailable-db@" label="Show unavailable databases" type="boolean" description="Show databases not unavailable for connection."/>
+                    </propertyGroup>
+                    <propertyGroup label="Misc">
+                        <property id="@dbeaver-chosen-role@" label="User role" type="string" description="User role for connection"/>
+                    </propertyGroup>
+                </provider-properties>
 
             </drivers>
 
@@ -535,6 +574,7 @@
                 label="%provider.data.type.postgresql.name">
 
             <datasource id="postgresql"/>
+            <datasource id="greenplum"/>
 
             <type name="*"/>
         </provider>
@@ -661,7 +701,7 @@ SELECT
             </query>
         </dashboard>
         <dashboard id="postgresql.blockIO" label="Block IO" group="Standard" defaultView="timeseries" updatePeriod="2000"
-            calc="delta" value="integer" fetch="columns" showByDefault="true" description="Shows blocking IO operations per second">
+            calc="delta" value="bytes" fetch="columns" showByDefault="true" description="Shows blocking IO operations per second">
             <datasource id="postgresql"/>
             <query>
 SELECT

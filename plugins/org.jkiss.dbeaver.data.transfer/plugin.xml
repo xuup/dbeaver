@@ -52,6 +52,8 @@
                     <property id="emptyStringNull" label="%dataTransfer.producer.stream.processor.csv.property.emptyStringNull.name" type="boolean" description="%dataTransfer.producer.stream.processor.csv.property.emptyStringNull.description" defaultValue="" required="false"/>
                     <property id="timestampFormat" label="%dataTransfer.producer.stream.processor.csv.property.timestampFormat.name" type="string" description="%dataTransfer.producer.stream.processor.csv.property.timestampFormat.description" defaultValue="yyyy-MM-dd[ HH:mm:ss[.SSS]]" required="false"/>
                     <property id="timestampZone" label="%dataTransfer.producer.stream.processor.csv.property.timestampZone.name" type="string" description="%dataTransfer.producer.stream.processor.csv.property.timestampZone.description" defaultValue="" required="false"/>
+                    <property id="columnTypeSamplesCount" label="%dataTransfer.producer.stream.processor.csv.property.columnTypeSamplesCount.name" type="integer" description="%dataTransfer.producer.stream.processor.csv.property.columnTypeSamplesCount.description" defaultValue="1000" required="false"/>
+                    <property id="columnTypeMinimalLength" label="%dataTransfer.producer.stream.processor.csv.property.columnTypeMinimalLength.name" type="integer" description="%dataTransfer.producer.stream.processor.csv.property.columnTypeMinimalLength.description" defaultValue="1" required="false"/>
                 </propertyGroup>
             </processor>
         </node>
@@ -190,9 +192,10 @@
                     <property id="minColumnLength" label="%dataTransfer.processor.txt.property.minColumnLength.label" defaultValue="3"/>
                     <property id="maxColumnLength" label="%dataTransfer.processor.txt.property.maxColumnLength.label" defaultValue="0"/>
                     <property id="showNulls" label="%dataTransfer.processor.txt.property.showNulls.label" type="boolean" defaultValue="false"/>
-                    <property id="delimLeading" label="%dataTransfer.processor.txt.property.delimLeading.label" type="boolean" defaultValue="true"/>
                     <property id="delimHeader" label="%dataTransfer.processor.txt.property.delimHeader.label" type="boolean" defaultValue="true"/>
+                    <property id="delimLeading" label="%dataTransfer.processor.txt.property.delimLeading.label" type="boolean" defaultValue="true"/>
                     <property id="delimTrailing" label="%dataTransfer.processor.txt.property.delimTrailing.label" type="boolean" defaultValue="true"/>
+                    <property id="delimBetween" label="%dataTransfer.processor.txt.property.delimBetween.label" type="boolean" defaultValue="true"/>
                 </propertyGroup>
             </processor>
             <processor

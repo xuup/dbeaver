@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,7 @@ package org.jkiss.dbeaver.ext.clickhouse.model;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericCatalog;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
+import org.jkiss.dbeaver.ext.generic.model.*;
 import org.jkiss.dbeaver.model.DBPObjectStatisticsCollector;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.exec.DBCException;
@@ -33,6 +30,7 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * ClickhouseSchema
@@ -43,6 +41,16 @@ public class ClickhouseSchema extends GenericSchema implements DBPObjectStatisti
 
     public ClickhouseSchema(@NotNull GenericDataSource dataSource, @Nullable GenericCatalog catalog, @NotNull String schemaName) {
         super(dataSource, catalog, schemaName);
+    }
+
+    @Override
+    public List<ClickhouseTable> getPhysicalTables(DBRProgressMonitor monitor) throws DBException {
+        return (List<ClickhouseTable>) super.getPhysicalTables(monitor);
+    }
+
+    @Override
+    public List<ClickhouseTable> getTables(DBRProgressMonitor monitor) throws DBException {
+        return (List<ClickhouseTable>) super.getTables(monitor);
     }
 
     @Override

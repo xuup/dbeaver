@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,12 +53,11 @@ public abstract class MySQLNativeToolHandler<SETTINGS extends AbstractNativeTool
     }
 
     @Override
-    protected void setupProcessParameters(SETTINGS settings, PROCESS_ARG arg, ProcessBuilder process) {
+    protected void setupProcessParameters(DBRProgressMonitor monitor, SETTINGS settings, PROCESS_ARG arg, ProcessBuilder process) {
         if (!isOverrideCredentials(settings)) {
             String toolUserPassword = settings.getToolUserPassword();
-
-            if (CommonUtils.isEmpty(settings.getToolUserName())) {
-                toolUserPassword = settings.getDataSourceContainer().getActualConnectionConfiguration().getUserPassword();
+            if (CommonUtils.isEmpty(toolUserPassword)) {
+                toolUserPassword = getDataSourcePassword(monitor, settings);
             }
 
             if (CommonUtils.isNotEmpty(toolUserPassword)) {

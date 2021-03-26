@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,26 +74,14 @@ public final class DBUtils {
         return getQuotedIdentifier(object.getDataSource(), object.getName());
     }
 
-    public static boolean isQuotedIdentifier(@NotNull DBPDataSource dataSource, @NotNull String str)
-    {
-        {
-            final String[][] quoteStrings = dataSource.getSQLDialect().getIdentifierQuoteStrings();
-            if (ArrayUtils.isEmpty(quoteStrings)) {
-                return false;
-            }
-            for (int i = 0; i < quoteStrings.length; i++) {
-                if (str.startsWith(quoteStrings[i][0]) && str.endsWith(quoteStrings[i][1])) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    public static boolean isQuotedIdentifier(@NotNull DBPDataSource dataSource, @NotNull String str) {
+        return dataSource.getSQLDialect().isQuotedIdentifier(str);
     }
 
     @NotNull
     public static String getUnQuotedIdentifier(@NotNull DBPDataSource dataSource, @NotNull String str)
     {
-        return getUnQuotedIdentifier(str, dataSource.getSQLDialect().getIdentifierQuoteStrings());
+        return dataSource.getSQLDialect().getUnquotedIdentifier(str);
     }
 
     @NotNull
@@ -108,8 +96,7 @@ public final class DBUtils {
     }
 
     @NotNull
-    public static String getUnQuotedIdentifier(@NotNull String str, @NotNull String quote)
-    {
+    public static String getUnQuotedIdentifier(@NotNull String str, @NotNull String quote) {
         return getUnQuotedIdentifier(str, quote, quote);
     }
 
@@ -131,69 +118,8 @@ public final class DBUtils {
     }
 
     @NotNull
-    public static String getQuotedIdentifier(@NotNull DBPDataSource dataSource, @NotNull String str, boolean caseSensitiveNames, boolean quoteAlways)
-    {
-        if (isQuotedIdentifier(dataSource, str)) {
-            // Already quoted
-            return str;
-        }
-        final SQLDialect sqlDialect = dataSource.getSQLDialect();
-        String[][] quoteStrings = sqlDialect.getIdentifierQuoteStrings();
-        if (ArrayUtils.isEmpty(quoteStrings)) {
-            return str;
-        }
-
-        // Check for keyword conflict
-        final DBPKeywordType keywordType = sqlDialect.getKeywordType(str);
-        boolean hasBadChars = quoteAlways ||
-            ((keywordType == DBPKeywordType.KEYWORD || keywordType == DBPKeywordType.TYPE || keywordType == DBPKeywordType.OTHER) &&
-            sqlDialect.isQuoteReservedWords());
-
-        if (!hasBadChars && !str.isEmpty()) {
-            hasBadChars = !sqlDialect.validIdentifierStart(str.charAt(0));
-        }
-        if (!hasBadChars && caseSensitiveNames) {
-            // Check for case of quoted idents. Do not check for unquoted case - we don't need to quote em anyway
-            // Disable supportsQuotedMixedCase checking. Let's quote identifiers always if storage case doesn't match actual case
-            // unless database use case-insensitive search always (e.g. MySL with lower_case_table_names <> 0)
-            if (!sqlDialect.useCaseInsensitiveNameLookup()) {
-                // See how unquoted identifiers are stored
-                // If passed identifier case differs from unquoted then we need to escape it
-                switch (sqlDialect.storesUnquotedCase()) {
-                    case UPPER:
-                        hasBadChars = !str.equals(str.toUpperCase());
-                        break;
-                    case LOWER:
-                        hasBadChars = !str.equals(str.toLowerCase());
-                        break;
-                }
-            }
-        }
-
-        // Check for bad characters
-        if (!hasBadChars && !str.isEmpty()) {
-            for (int i = 0; i < str.length(); i++) {
-                if (!sqlDialect.validIdentifierPart(str.charAt(i), false)) {
-                    hasBadChars = true;
-                    break;
-                }
-            }
-        }
-        if (!hasBadChars) {
-            return str;
-        }
-
-        // Escape quote chars
-        for (int i = 0; i < quoteStrings.length; i++) {
-            String q1 = quoteStrings[i][0], q2 = quoteStrings[i][1];
-            if (q1.equals(q2) && (q1.equals("\"") || q1.equals("'"))) {
-                if (str.contains(q1)) {
-                    str = str.replace(q1, q1 + q1);
-                }
-            }
-        }
-        // Escape with first (default) quote string
-        return quoteStrings[0][0] + str + quoteStrings[0][1];
+    public static String getQuotedIdentifier(@NotNull DBPDataSource dataSource, @NotNull String str, boolean caseSensitiveNames, boolean quoteAlways) {
+        return dataSource.getSQLDialect().getQuotedIdentifier(str, caseSensitiveNames, quoteAlways);
     }
 
     @NotNull
@@ -527,6 +453,10 @@ public final class DBUtils {
             return null;
         }
         for (DBSObject parent = object.getParentObject(); parent != null; parent = parent.getParentObject()) {
+            parent = DBUtils.getPublicObject(parent);
+            if (parent == null) {
+                break;
+            }
             if (type.isInstance(parent)) {
                 return type.cast(parent);
             } else if (parent instanceof DBPDataSource || parent instanceof DBPDataSourceContainer) {
@@ -2050,17 +1980,21 @@ public final class DBUtils {
             return ((Comparable) cell1).compareTo(cell2);
         } else {
             if (cell1 instanceof Number) {
-                Number num2 = (Number) GeneralUtils.convertString(String.valueOf(cell2), cell1.getClass());
+                Object num2 = GeneralUtils.convertString(String.valueOf(cell2), cell1.getClass());
                 if (num2 == null) {
                     return -1;
                 }
-                return CommonUtils.compareNumbers((Number) cell1, num2);
+                if (num2 instanceof Number) {
+                    return CommonUtils.compareNumbers((Number) cell1, (Number) num2);
+                }
             } else if (cell2 instanceof Number) {
-                Number num1 = (Number) GeneralUtils.convertString(String.valueOf(cell1), cell2.getClass());
+                Object num1 = GeneralUtils.convertString(String.valueOf(cell1), cell2.getClass());
                 if (num1 == null) {
                     return 1;
                 }
-                return CommonUtils.compareNumbers(num1, (Number) cell2);
+                if (num1 instanceof Number) {
+                    return CommonUtils.compareNumbers((Number) num1, (Number) cell2);
+                }
             }
             String str1 = String.valueOf(cell1);
             String str2 = String.valueOf(cell2);

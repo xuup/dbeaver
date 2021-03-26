@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,11 @@ public class PostgreServerType extends AbstractDescriptor {
     private final String id;
     private final String name;
     private final DBPImage icon;
+    private final boolean hostIsCloudInstance;
+    private final boolean needsPort;
 
     private final boolean supportsCustomConnectionURL;
+    private final boolean turnOffPreparedStatements;
 
     PostgreServerType(IConfigurationElement config) {
         super(config);
@@ -41,6 +44,9 @@ public class PostgreServerType extends AbstractDescriptor {
         icon = iconToImage(config.getAttribute("logo"));
 
         supportsCustomConnectionURL = CommonUtils.getBoolean(config.getAttribute("customURL"), false);
+        hostIsCloudInstance = CommonUtils.getBoolean(config.getAttribute("hostIsCloudInstance"), false);
+        needsPort = CommonUtils.getBoolean(config.getAttribute("needsPort"), true);
+        turnOffPreparedStatements = CommonUtils.getBoolean(config.getAttribute("turnOffPreparedStatements"), false);
     }
 
     public String getId() {
@@ -65,5 +71,17 @@ public class PostgreServerType extends AbstractDescriptor {
 
     public boolean supportsCustomConnectionURL() {
         return supportsCustomConnectionURL;
+    }
+    
+    public boolean hostIsCloudInstance() {
+	return hostIsCloudInstance;
+    }
+    
+    public boolean needsPort() {
+	return needsPort;
+    }
+
+    public boolean turnOffPreparedStatements() {
+        return turnOffPreparedStatements;
     }
 }

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import org.eclipse.ui.*;
 import org.eclipse.ui.application.IWorkbenchConfigurer;
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.eclipse.ui.application.WorkbenchWindowAdvisor;
+import org.eclipse.ui.internal.SaveableHelper;
 import org.eclipse.ui.internal.ide.application.DelayedEventsProcessor;
 import org.eclipse.ui.internal.ide.application.IDEWorkbenchAdvisor;
 import org.jkiss.code.NotNull;
@@ -224,6 +225,10 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
                     IEditorPart editorPart = editor.getEditor(false);
                     if (editorPart != null && editorPart.getEditorInput() instanceof ContentEditorInput) {
                         workbenchPage.closeEditor(editorPart, false);
+                    } else if (editorPart instanceof ISaveablePart2) {
+                        if (!SaveableHelper.savePart(editorPart, editorPart, window, true)) {
+                            return false;
+                        }
                     }
                 }
             }

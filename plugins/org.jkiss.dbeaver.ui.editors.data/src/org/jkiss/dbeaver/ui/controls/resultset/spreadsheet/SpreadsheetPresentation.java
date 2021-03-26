@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  */
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,6 +100,7 @@ import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
 import org.jkiss.dbeaver.ui.properties.PropertySourceDelegate;
 import org.jkiss.dbeaver.utils.ContentUtils;
 import org.jkiss.dbeaver.utils.GeneralUtils;
+import org.jkiss.dbeaver.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLUtils;
@@ -113,7 +114,6 @@ import java.util.*;
  * Visualizes results as grid.
  */
 public class SpreadsheetPresentation extends AbstractPresentation implements IResultSetEditor, ISelectionProvider, IStatefulControl, IAdaptable, IGridController {
-
     public static final String PRESENTATION_ID = "spreadsheet";
 
     public static final String ATTR_OPTION_PINNED = "pinned";
@@ -334,7 +334,6 @@ public class SpreadsheetPresentation extends AbstractPresentation implements IRe
             spreadsheet.getHorizontalScrollBarProxy().setSelection(hScrollPos);
 
             // Update controls
-            controller.updateEditControls();
             controller.updateStatusMessage();
             controller.updatePanelsContent(false);
 
@@ -1183,7 +1182,7 @@ public class SpreadsheetPresentation extends AbstractPresentation implements IRe
                 protected IStatus run(DBRProgressMonitor monitor) {
                     try {
                         boolean newWindow;
-                        if (GeneralUtils.isMacOS()) {
+                        if (RuntimeUtils.isMacOS()) {
                             newWindow = (state & SWT.COMMAND) == SWT.COMMAND;
                         } else {
                             newWindow = (state & SWT.CTRL) == SWT.CTRL;
@@ -1489,6 +1488,26 @@ public class SpreadsheetPresentation extends AbstractPresentation implements IRe
     @Override
     public boolean isMaximizeSingleColumn() {
         return controller.isRecordMode();
+    }
+
+    public Color getBackgroundAdded() {
+        return backgroundAdded;
+    }
+
+    public Color getBackgroundDeleted() {
+        return backgroundDeleted;
+    }
+
+    public Color getBackgroundModified() {
+        return backgroundModified;
+    }
+
+    public Color getBackgroundNormal() {
+        return backgroundNormal;
+    }
+
+    public Color getBackgroundOdd() {
+        return backgroundOdd;
     }
 
     private class SpreadsheetSelectionImpl implements IResultSetSelection, IResultSetSelectionExt {
@@ -2302,5 +2321,4 @@ public class SpreadsheetPresentation extends AbstractPresentation implements IRe
         }
 
     }
-
 }

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ import org.jkiss.dbeaver.ui.controls.NamedObjectPatternFilter;
 import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
 import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
 import org.jkiss.dbeaver.ui.dialogs.HelpEnabledDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import org.jkiss.dbeaver.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -553,7 +553,7 @@ class FilterSettingsDialog extends HelpEnabledDialog {
         }
 
         public void okPressed() {
-            if (GeneralUtils.isMacOS() && lastTreeItem != null && lastEditor != null) {
+            if (RuntimeUtils.isMacOS() && lastTreeItem != null && lastEditor != null) {
                 saveEditorValue(lastEditor, 3, lastTreeItem);
             }
         }

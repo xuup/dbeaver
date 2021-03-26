@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -911,7 +911,7 @@ public class SQLEditor extends SQLEditorBase implements
             getSite(),
             SQLEditorCommands.CMD_SQL_SHOW_OUTPUT,
             true)
-            .setText("Output");
+            .setText("Out");
         VerticalButton.create(
             sideToolBar,
             SWT.LEFT | SWT.CHECK,
@@ -1075,6 +1075,7 @@ public class SQLEditor extends SQLEditorBase implements
 
         // Create results tab
         createQueryProcessor(true, true);
+        resultsSash.setMaximizedControl(sqlEditorPanel);
 
         {
             resultTabs.addMouseListener(new MouseAdapter() {
@@ -1569,6 +1570,9 @@ public class SQLEditor extends SQLEditorBase implements
 
         @Override
         public void run() {
+            if (resultsSash.getMaximizedControl() != null) {
+                resultsSash.setMaximizedControl(null);
+            }
             setChecked(!isChecked());
             SQLEditorPresentationPanel panelInstance = extraPresentationPanels.get(panel);
             if (panelInstance != null && !isChecked()) {
@@ -1814,6 +1818,9 @@ public class SQLEditor extends SQLEditorBase implements
     }
 
     private void explainQueryPlan(SQLQuery sqlQuery) {
+        if (resultsSash.getMaximizedControl() != null) {
+            toggleResultPanel();
+        }
         DBCQueryPlanner planner = GeneralUtils.adapt(getDataSource(), DBCQueryPlanner.class);
 
         DBCPlanStyle planStyle = planner.getPlanStyle();
@@ -2154,6 +2161,10 @@ public class SQLEditor extends SQLEditorBase implements
             }
         }
 
+        if (curQueryProcessor == null) {
+            createQueryProcessor(true, true);
+        }
+
         return curQueryProcessor.processQueries(
             scriptContext,
             queries,
@@ -2302,7 +2313,9 @@ public class SQLEditor extends SQLEditorBase implements
         if (getDataSourceContainer() == null) {
             resultsSash.setMaximizedControl(sqlEditorPanel);
         } else {
-            resultsSash.setMaximizedControl(null);
+            if (curQueryProcessor != null && curQueryProcessor.getFirstResults().hasData()) {
+                resultsSash.setMaximizedControl(null);
+            }
         }
 
         lastExecutionContext = executionContext;

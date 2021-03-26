@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +32,19 @@ public class ERDHandlerPrint extends AbstractHandler {
 
     @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {
+        ERDEditorPart editor = null;
         Control control = (Control) HandlerUtil.getVariable(event, ISources.ACTIVE_FOCUS_CONTROL_NAME);
         if (control != null) {
-            ERDEditorPart editor = ERDEditorAdapter.getEditor(control);
-            if (editor != null) {
-                editor.printDiagram();
+            editor = ERDEditorAdapter.getEditor(control);
+        }
+        if (editor == null) {
+            Object activeEditor = HandlerUtil.getVariable(event, ISources.ACTIVE_EDITOR_NAME);
+            if (activeEditor != null) {
+                editor = new ERDEditorAdapter().getAdapter(activeEditor, ERDEditorPart.class);
             }
+        }
+        if (editor != null) {
+            editor.printDiagram();
         }
         return null;
     }

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
 import org.jkiss.dbeaver.model.struct.rdb.DBSManipulationType;
 import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
+import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
 import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
 import org.jkiss.dbeaver.tools.transfer.IDataTransferNodePrimary;
 import org.jkiss.dbeaver.tools.transfer.IDataTransferProcessor;
@@ -51,8 +52,8 @@ import java.util.*;
  * Stream transfer consumer
  */
 @DBSerializable("databaseTransferConsumer")
-public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>, IDataTransferNodePrimary {
-
+public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>,
+        IDataTransferNodePrimary, DBPReferentialIntegrityController {
     private static final Log log = Log.getLog(DatabaseTransferConsumer.class);
 
     private DatabaseConsumerSettings settings;
@@ -326,31 +327,29 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                     executeBatch.execute(targetSession, options);
                 } catch (Throwable e) {
                     log.error("Error inserting row", e);
-                    if (!disableUsingBatches) {
-                        DBWorkbench.getPlatformUI().showError("Error inserting row", "Data transfer failed during batch insert\n" +
-                                "(you can disable batch insert in order to skip particular rows).", e);
-                        throw new DBCException("Can't insert row", e);
+                    if (ignoreErrors) {
+                        break;
+                    }
+                    String message;
+                    if (disableUsingBatches) {
+                        message = DTMessages.database_transfer_consumer_task_error_occurred_during_data_load;
                     } else {
-                        if (!ignoreErrors) {
-                            switch (DBWorkbench.getPlatformUI().showErrorStopRetryIgnore(
-                                    DTMessages.database_transfer_consumer_task_error_occurred_during_data_load, e, true)) {
-                                case STOP:
-                                    // just stop execution
-                                    throw new DBCException("Can't insert row", e);
-                                case RETRY:
-                                    // do it again
-                                    retryInsert = true;
-                                    break;
-                                case IGNORE:
-                                    // Just do nothing and go to the next row
-                                    retryInsert = false;
-                                    break;
-                                case IGNORE_ALL:
-                                    ignoreErrors = true;
-                                    retryInsert = false;
-                                    break;
-                            }
-                        }
+                        message = DTMessages.database_transfer_consumer_task_error_occurred_during_batch_insert;
+                    }
+                    DBPPlatformUI.UserResponse response = DBWorkbench.getPlatformUI().showErrorStopRetryIgnore(message, e, true);
+                    switch (response) {
+                        case STOP:
+                            throw new DBCException("Can't insert row", e);
+                        case RETRY:
+                            retryInsert = true;
+                            break;
+                        case IGNORE:
+                            retryInsert = false;
+                            break;
+                        case IGNORE_ALL:
+                            ignoreErrors = true;
+                            retryInsert = false;
+                            break;
                     }
                 }
             } while (retryInsert);
@@ -701,6 +700,35 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
     public boolean equals(Object obj) {
         return obj instanceof DatabaseTransferConsumer &&
             CommonUtils.equalObjects(getTargetObject(), ((DatabaseTransferConsumer) obj).getTargetObject());
+    }
+
+    @Override
+    public boolean supportsChangingReferentialIntegrity(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return checkTargetContainer(monitor) instanceof DBPReferentialIntegrityController;
+    }
+
+    @Override
+    public void enableReferentialIntegrity(@NotNull DBRProgressMonitor monitor, boolean enable) throws DBException {
+        DBSObject dbsObject = checkTargetContainer(monitor);
+        if (!(dbsObject instanceof DBPReferentialIntegrityController)) {
+            throw new DBException("Changing referential integrity is unsupported!");
+        }
+        DBPReferentialIntegrityController controller = (DBPReferentialIntegrityController) dbsObject;
+        controller.enableReferentialIntegrity(monitor, enable);
+    }
+
+    @NotNull
+    @Override
+    public String getReferentialIntegrityDisableWarning(@NotNull DBRProgressMonitor monitor) throws DBException {
+        DBSObject dbsObject = checkTargetContainer(monitor);
+        if (dbsObject instanceof DBPReferentialIntegrityController) {
+            return ((DBPReferentialIntegrityController) dbsObject).getReferentialIntegrityDisableWarning(monitor);
+        }
+        return "";
+    }
+
+    public DatabaseConsumerSettings getSettings() {
+        return settings;
     }
 
     private class PreviewBatch implements DBSDataManipulator.ExecuteBatch {

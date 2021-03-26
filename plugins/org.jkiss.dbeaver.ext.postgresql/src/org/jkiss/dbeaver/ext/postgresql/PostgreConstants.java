@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,8 @@ public class PostgreConstants {
     public static final String PROP_SHOW_NON_DEFAULT_DB = DBConstants.INTERNAL_PROP_PREFIX + "show-non-default-db@";
     public static final String PROP_SHOW_UNAVAILABLE_DB = DBConstants.INTERNAL_PROP_PREFIX + "show-unavailable-db@";
     public static final String PROP_SHOW_TEMPLATES_DB = DBConstants.INTERNAL_PROP_PREFIX + "show-template-db@";
+    public static final String PROP_READ_ALL_DATA_TYPES = DBConstants.INTERNAL_PROP_PREFIX + "read-all-data-types-db@";
+    public static final String PROP_USE_PREPARED_STATEMENTS = DBConstants.INTERNAL_PROP_PREFIX + "use-prepared-statements-db@";
     public static final String PROP_DD_PLAIN_STRING = "postgresql.dd.plain.string";
     public static final String PROP_DD_TAG_STRING = "postgresql.dd.tag.string";
 
@@ -74,6 +76,9 @@ public class PostgreConstants {
     public static final String TOAST_SCHEMA_PREFIX = "pg_toast";
     public static final String TEMP_SCHEMA_PREFIX = "pg_temp_";
     public static final String PUBLIC_SCHEMA_NAME = "public";
+
+    // Settings names from 'pg_options' view
+    public static final String OPTION_STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
 
     public static final String PG_OBJECT_CLASS = "org.postgresql.util.PGobject";
     public static final String PG_ARRAY_CLASS = "org.postgresql.jdbc.PgArray";

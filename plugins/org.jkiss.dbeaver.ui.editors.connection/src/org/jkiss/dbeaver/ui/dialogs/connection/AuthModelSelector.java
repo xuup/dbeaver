@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,12 +102,14 @@ public class AuthModelSelector extends Composite {
             for (DBPAuthModelDescriptor amd : allAuthModels) {
                 if (amd.getId().equals(defaultAuthModelId)) {
                     selectedAuthModel = amd;
+                    dataSourceContainer.getConnectionConfiguration().setAuthModelId(selectedAuthModel.getId());
                     break;
                 }
             }
             if (selectedAuthModel == null) {
                 // First one
                 selectedAuthModel = allAuthModels.get(0);
+                dataSourceContainer.getConnectionConfiguration().setAuthModelId(selectedAuthModel.getId());
             }
         }
 
@@ -142,6 +144,7 @@ public class AuthModelSelector extends Composite {
                         return;
                     }
                     selectedAuthModel = newAuthModel;
+                    activeDataSource.getConnectionConfiguration().setAuthModelId(selectedAuthModel.getId());
                     showAuthModelSettings();
                 }
                 modelConfigPlaceholder.setFocus();
@@ -178,6 +181,10 @@ public class AuthModelSelector extends Composite {
 
         if (authModelConfigurator != null) {
             authModelConfigurator.createControl(modelConfigPlaceholder, () -> changeListener.run());
+            if (activeDataSource != null && selectedAuthModel != null) {
+                // Set selected auth model to datasource config
+                activeDataSource.getConnectionConfiguration().setAuthModelId(selectedAuthModel.getId());
+            }
             authModelConfigurator.loadSettings(activeDataSource);
         } else {
             if (selectedAuthModel != null && !CommonUtils.isEmpty(selectedAuthModel.getDescription())) {

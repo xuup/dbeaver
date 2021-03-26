@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.jkiss.dbeaver.ext.mysql.data;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.data.gis.handlers.GISGeometryValueHandler;
 import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
 import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.DBPDataSource;
@@ -51,7 +50,7 @@ public class MySQLValueHandlerProvider implements DBDValueHandlerProvider {
             case MySQLConstants.TYPE_JSON:
                 return JDBCContentValueHandler.INSTANCE;
             case MySQLConstants.TYPE_GEOMETRY:
-                return new GISGeometryValueHandler(true);
+                return MySQLGeometryValueHandler.INSTANCE;
             case MySQLConstants.TYPE_ENUM:
             case MySQLConstants.TYPE_SET:
                 return JDBCObjectValueHandler.INSTANCE;

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,6 +111,11 @@ public class DBXTreeFolder extends DBXTreeNode {
         this.type = type;
     }
 
+    public String getIdOrType() {
+        String id = getId();
+        return !CommonUtils.isEmpty(id) ? id : type;
+    }
+
     @Override
     public String getNodeTypeLabel(@Nullable DBPDataSource dataSource, @Nullable String locale) {
         if (locale == null) {
@@ -161,6 +166,20 @@ public class DBXTreeFolder extends DBXTreeNode {
             return childrenWithContributions;
         }
         return children;
+    }
+
+    @Override
+    protected boolean isVisible(DBNNode context) {
+        if (!super.isVisible(context)) {
+            return false;
+        }
+        // If child nodes are only folders and all non visible then parent folder is also not visible
+        for (DBXTreeNode childNode : getChildren(context)) {
+            if (childNode.isVisible(context)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,11 +120,16 @@ public class DiagramObjectCollector {
                     continue;
                 }
                 if (entity instanceof DBSEntity) {
-                    if ((entity instanceof DBSTablePartition && !showPartitions) || (DBUtils.isView((DBSEntity) entity) && !showViews)) {
+                    DBSEntity entity1 = (DBSEntity) entity;
+                    if ((entity instanceof DBSTablePartition && !showPartitions) || (DBUtils.isView(entity1) && !showViews)) {
                         continue;
                     }
 
-                    tables.add((DBSEntity) entity);
+                    if (ERDUtils.skipSystemEntity(entity1)) {
+                        continue;
+                    }
+
+                    tables.add(entity1);
                 } else if (entity instanceof DBSObjectContainer) {
                     collectTables(monitor, (DBSObjectContainer) entity, tables, showViews, showPartitions);
                 }

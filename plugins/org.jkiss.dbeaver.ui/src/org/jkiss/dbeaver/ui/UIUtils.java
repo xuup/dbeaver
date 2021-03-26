@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2020 DBeaver Corp and others
+ * Copyright (C) 2010-2021 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.AbstractTreeViewer;
 import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.window.IShellProvider;
+import org.eclipse.jface.wizard.IWizardContainer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.custom.CTabFolder;
@@ -85,15 +86,14 @@ import java.util.SortedMap;
  * UI Utils
  */
 public class UIUtils {
-
     private static final Log log = Log.getLog(UIUtils.class);
 
-    public static final String INLINE_WIDGET_EDITOR_ID = "org.jkiss.dbeaver.ui.InlineWidgetEditor";
+    private static final String INLINE_WIDGET_EDITOR_ID = "org.jkiss.dbeaver.ui.InlineWidgetEditor";
     private static final Color COLOR_BLACK = new Color(null, 0, 0, 0);
     private static final Color COLOR_WHITE = new Color(null, 255, 255, 255);
-
-    private static SharedTextColors sharedTextColors = new SharedTextColors();
-    private static SharedFonts sharedFonts = new SharedFonts();
+    private static final SharedTextColors SHARED_TEXT_COLORS = new SharedTextColors();
+    private static final SharedFonts SHARED_FONTS = new SharedFonts();
+    private static final String MAX_LONG_STRING = String.valueOf(Long.MAX_VALUE);
 
     public static VerifyListener getIntegerVerifyListener(Locale locale)
     {
@@ -128,23 +128,28 @@ public class UIUtils {
         };
     }
 
-    public static VerifyListener getLongVerifyListener(Text text) {
+    public static VerifyListener getUnsignedLongOrEmptyTextVerifyListener(Text text) {
         return e -> {
-
-            // get old text and create new text by using the VerifyEvent.text
-            final String oldS = text.getText();
-            String newS = oldS.substring(0, e.start) + e.text + oldS.substring(e.end);
-
-            boolean isLong = true;
-            try {
-                Long.parseLong(newS);
+            if (e.text.isEmpty()) {
+                e.doit = true;
+                return;
             }
-            catch(NumberFormatException ex) {
-                isLong = false;
+            for (int i = 0; i < e.text.length(); i++) {
+                if (!Character.isDigit(e.text.charAt(i))) {
+                    e.doit = false;
+                    return;
+                }
             }
-
-            if(!isLong)
+            String newText = text.getText().substring(0, e.start) + e.text + text.getText().substring(e.end);
+            if (newText.length() < MAX_LONG_STRING.length()) {
+                e.doit = true;
+                return;
+            }
+            if (newText.length() > MAX_LONG_STRING.length()) {
                 e.doit = false;
+                return;
+            }
+            e.doit = newText.compareTo(MAX_LONG_STRING) <= 0;
         };
     }
 
@@ -1385,6 +1390,10 @@ public class UIUtils {
         return control.getShell().getData() instanceof org.eclipse.jface.dialogs.Dialog;
     }
 
+    public static boolean isInWizard(Control control) {
+        return control.getShell().getData() instanceof IWizardContainer;
+    }
+
     public static Link createLink(Composite parent, String text, SelectionListener listener) {
         Link link = new Link(parent, SWT.NONE);
         link.setText(text);
@@ -1480,7 +1489,23 @@ public class UIUtils {
     }
 
     public static void fillDefaultTreeContextMenu(IContributionManager menu, final Tree tree) {
-        menu.add(new Action("Copy selection") {
+        if (tree.getColumnCount() > 1) {
+            menu.add(new Action("Copy " + tree.getColumn(0).getText()) {
+                @Override
+                public void run() {
+                    StringBuilder text = new StringBuilder();
+                    for (TreeItem item : tree.getSelection()) {
+                        if (text.length() > 0) text.append("\n");
+                        text.append(item.getText(0));
+                    }
+                    if (text.length() == 0) {
+                        return;
+                    }
+                    UIUtils.setClipboardContents(tree.getDisplay(), TextTransfer.getInstance(), text.toString());
+                }
+            });
+        }
+        menu.add(new Action("Copy All") {
             @Override
             public void run() {
                 StringBuilder text = new StringBuilder();
@@ -1536,11 +1561,11 @@ public class UIUtils {
     }
 
     public static SharedTextColors getSharedTextColors() {
-        return sharedTextColors;
+        return SHARED_TEXT_COLORS;
     }
 
     public static SharedFonts getSharedFonts() {
-        return sharedFonts;
+        return SHARED_FONTS;
     }
 
     public static void run(
@@ -1714,7 +1739,7 @@ public class UIUtils {
         if (CommonUtils.isEmpty(rgbString)) {
             return null;
         }
-        return sharedTextColors.getColor(rgbString);
+        return SHARED_TEXT_COLORS.getColor(rgbString);
     }
 
     @Nullable
@@ -1722,7 +1747,7 @@ public class UIUtils {
         if (rgb == null) {
             return null;
         }
-        return sharedTextColors.getColor(rgb);
+        return SHARED_TEXT_COLORS.getColor(rgb);
     }
 
     public static Color getConnectionColor(DBPConnectionConfiguration connectionInfo) {
@@ -1751,9 +1776,9 @@ public class UIUtils {
         if (Character.isAlphabetic(rgbStringOrId.charAt(0))) {
             // Some color constant
             RGB rgb = getActiveWorkbenchWindow().getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry().getRGB(rgbStringOrId);
-            return sharedTextColors.getColor(rgb);
+            return SHARED_TEXT_COLORS.getColor(rgb);
         } else {
-            Color connectionColor = sharedTextColors.getColor(rgbStringOrId);
+            Color connectionColor = SHARED_TEXT_COLORS.getColor(rgbStringOrId);
             if (connectionColor.getBlue() == 255 && connectionColor.getRed() == 255 && connectionColor.getGreen() == 255) {
                 // For white color return just null to avoid explicit color set.
                 // It is important for dark themes
@@ -1871,7 +1896,7 @@ public class UIUtils {
     public static void fixReadonlyTextBackground(Text textField) {
         // There is still no good workaround: https://bugs.eclipse.org/bugs/show_bug.cgi?id=340889
         if (false) {
-            if (GeneralUtils.isWindows()) {
+            if (RuntimeUtils.isWindows()) {
                 // On Windows everything is fine
                 return;
             }
@@ -1984,9 +2009,9 @@ public class UIUtils {
     }
 
     private static boolean isEmptyTextControl(Control control) {
-        return control instanceof Text ?
-            ((Text) control).getCharCount() == 0 :
-            control instanceof StyledText && ((StyledText) control).getCharCount() == 0;
+        return (control instanceof Text && ((Text) control).getCharCount() == 0) ||
+            (control instanceof StyledText && ((StyledText) control).getCharCount() == 0) ||
+            (control instanceof Combo && ((Combo) control).getText().isEmpty());
     }
 
     public static void expandAll(AbstractTreeViewer treeViewer) {
